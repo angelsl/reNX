@@ -93,7 +93,7 @@ namespace reNX.NXProperties
         protected void AddChild(NXNode child)
         {
             if(_children == null)
-                _children = new Dictionary<string, NXNode>();
+                _children = new Dictionary<string, NXNode>(7);
             _children.Add(child.Name, child);
         }
 
