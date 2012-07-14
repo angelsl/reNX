@@ -33,6 +33,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using reNX.NXProperties;
 
 namespace reNX
 {
@@ -41,17 +43,17 @@ namespace reNX
         private readonly bool _disposeStream;
         internal readonly NXReadSelection _flags;
         internal readonly object _lock = new object();
-        private NXDirectory _maindir;
+        private NXNode _maindir;
 
-        private long[] _canvasOffsets;
+        internal long[] _canvasOffsets;
         private bool _disposed;
         internal Stream _file;
-        private long[] _mp3Offsets;
-        private long[] _nodeOffsets;
+        internal long[] _mp3Offsets;
+        internal NXNode[] _nodeOffsets;
         private BinaryReader _r;
         private long[] _strOffsets;
 
-        private Dictionary<uint, string> _strings;
+        private string[] _strings;
 
         /// <summary>
         ///   Creates and loads a NX file from a path. The Stream created will be disposed when the NX file is disposed.
@@ -74,7 +76,6 @@ namespace reNX
             _file = input;
             _flags = flag;
             _r = new BinaryReader(_file);
-            _strings = new Dictionary<uint, string>();
             Parse();
         }
 
@@ -85,10 +86,25 @@ namespace reNX
         /// </summary>
         public void Dispose()
         {
-            throw new NotImplementedException();
+            _disposed = true;
+            if(_disposeStream) _file.Close();
+            _r = null;
+            _file = null;
+            _canvasOffsets = null;
+            _mp3Offsets = null;
+            _nodeOffsets = null;
+            _strOffsets = null;
+            _maindir = null;
+            _strings = null;
         }
 
         #endregion
+
+        public NXNode ResolvePath(string path)
+        {
+            CheckDisposed();
+            return (path.StartsWith("/") ? path.Substring(1) : path).Split('/').Where(node => node != ".").Aggregate(_maindir, (current, node) => node == ".." ? current.Parent : current[node]);
+        }
 
         private void Parse()
         {
@@ -96,9 +112,10 @@ namespace reNX
             lock (_lock) {
                 if (_r.ReadASCIIString(4) != "PKG2")
                     Util.Die("NX file has invalid header; invalid magic");
-                _nodeOffsets = new long[Util.TrueOrDie(_r.ReadUInt32(), i => i > 0, "NX file has no nodes!")];
+                _nodeOffsets = new NXNode[Util.TrueOrDie(_r.ReadUInt32(), i => i > 0, "NX file has no nodes!")];
                 ulong nodeStart = _r.ReadUInt64();
                 _strOffsets = new long[Util.TrueOrDie(_r.ReadUInt32(), i => i > 0, "NX file has no strings!")];
+                _strings = new string[_strOffsets.Length];
                 ulong strStart = _r.ReadUInt64();
                 _canvasOffsets = new long[_r.ReadUInt32()];
                 ulong canvasStart = _r.ReadUInt64();
@@ -108,18 +125,26 @@ namespace reNX
                 _r.BaseStream.Position = (long)strStart;
                 for (uint i = 0; i < _strOffsets.LongLength; ++i) {
                     _strOffsets[i] = _file.Position;
-                    _file.Position += _r.ReadUInt16();
+                    ushort l = _r.ReadUInt16();
+                    _file.Position += l;
                 }
 
                 ReadOffsetTable(_canvasOffsets, (long)canvasStart);
                 ReadOffsetTable(_mp3Offsets, (long)mp3Start);
+
+                _file.Position = (long)nodeStart;
+
+                uint nextId = 0;
+                _maindir = NXNode.ParseNode(_r, ref nextId, null, this);
             }
         }
 
         internal string GetString(uint id)
         {
+            if (_strings[id] != null)
+                return _strings[id];
             lock (_lock) {
-                if (_strings.ContainsKey(id))
+                if (_strings[id] != null)
                     return _strings[id];
                 long orig = _file.Position;
                 _file.Position = _strOffsets[id];
@@ -135,6 +160,11 @@ namespace reNX
             _r.BaseStream.Position = offset;
             for (uint i = 0; i < array.LongLength; ++i)
                 array[i] = (long)_r.ReadUInt64();
+        }
+
+        internal void CheckDisposed()
+        {
+            if (_disposed) throw new ObjectDisposedException("NX file");
         }
     }
 

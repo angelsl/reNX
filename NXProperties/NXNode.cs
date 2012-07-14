@@ -31,23 +31,24 @@
 // do so, delete this exception statement from your version.
 
 using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
 
 namespace reNX.NXProperties
 {
     public abstract class NXNode
     {
-        private bool _canHaveChild;
         private Dictionary<string, NXNode> _children;
         private NXFile _file;
         private string _name;
-        private NXNode _parent;
+        private readonly NXNode _parent;
 
-        internal NXNode(string name, NXNode parent, NXFile file, bool canHaveChildren)
+        protected NXNode(string name, NXNode parent, NXFile file)
         {
             _name = name;
             _parent = parent;
             _file = file;
-            _canHaveChild = canHaveChildren;
+            _children = null;
         }
 
         public string Name
@@ -62,7 +63,149 @@ namespace reNX.NXProperties
 
         public NXFile File
         {
-            get { return _file; }
+            get
+            {
+                _file.CheckDisposed(); return _file;
+            }
+        }
+
+        public int ChildCount
+        {
+            get { _file.CheckDisposed(); return _children == null ? 0 : _children.Count; }
+        }
+
+        public NXNode this[string name]
+        {
+            get { _file.CheckDisposed(); return _children == null || !_children.ContainsKey(name) ? null : _children[name]; }
+        }
+
+        public bool ContainsChild(string name)
+        {
+            _file.CheckDisposed();
+            return _children != null && _children.ContainsKey(name);
+        }
+
+        public NXNode GetChild(string name)
+        {
+            return this[name];
+        }
+
+        protected void AddChild(NXNode child)
+        {
+            if(_children == null)
+                _children = new Dictionary<string, NXNode>();
+            _children.Add(child.Name, child);
+        }
+
+        internal static NXNode ParseNode(BinaryReader r, ref uint nextId, NXNode parent, NXFile file)
+        {
+            string name = file.GetString(r.ReadUInt32());
+            byte type = r.ReadByte();
+            NXNode ret = null;
+            switch(type & 0x7F) {
+                case 0:
+                    ret = new NXNullNode(name, parent, file);
+                    break;
+                case 1:
+                    ret = new NXInt32Node(name, parent, file, r.ReadInt32());
+                    break;
+                case 2:
+                    ret = new NXDoubleNode(name, parent, file, r.ReadDouble());
+                    break;
+                case 3:
+                    ret = new NXStringNode(name, parent, file, r.ReadUInt32());
+                    break;
+                case 4:
+                    int x = r.ReadInt32(); 
+                    int y = r.ReadInt32();
+                    ret = new NXPointNode(name, parent, file, new Point(x,y));
+                    break;
+                case 5:
+                    ret = new NXCanvasNode(name, parent, file, r.ReadUInt32());
+                    break;
+                case 6:
+                    ret = new NXMP3Node(name, parent, file, r.ReadUInt32());
+                    break;
+                case 7:
+                    ret = new NXUOLNode(name, parent, file, r.ReadUInt32());
+                    break;
+                default:
+                    Util.Die(string.Format("NX node has invalid type {0}; dying", type & 0x7f));
+                    return null;
+            }
+            file._nodeOffsets[nextId++] = ret;
+            if ((type & 0x80) != 0x80) return ret;
+            ushort childCount = r.ReadUInt16();
+            for(; childCount > 0; --childCount) {
+                ret.AddChild(ParseNode(r, ref nextId, parent, file));
+            }
+            return ret;
+        }
+    }
+
+    public abstract class NXValuedNode<T> : NXNode
+    {
+        protected T _value;
+
+        protected NXValuedNode(string name, NXNode parent, NXFile file) 
+            : base(name, parent, file)
+        {
+        }
+
+        protected NXValuedNode(string name, NXNode parent, NXFile file, T value)
+            : base(name, parent, file)
+        {
+            _value = value;
+        }
+
+        public virtual T Value
+        {
+            get
+            {
+                File.CheckDisposed(); return _value;
+            }
+        }
+    }
+
+    public abstract class NXLazyValuedNode<T> : NXValuedNode<T>
+    {
+        private bool _loaded;
+
+        protected NXLazyValuedNode(string name, NXNode parent, NXFile file) 
+            : base(name, parent, file)
+        {
+        }
+
+        protected abstract T LoadValue();
+
+        public virtual T Value
+        {
+            get
+            {
+                File.CheckDisposed();
+                if (!_loaded)
+                {
+                    lock (File._lock) {
+                        _value = LoadValue();
+                        _loaded = true;
+                    }
+                }
+                return _value;
+            }
+        }
+    }
+
+    public static class NXValueHelper
+    {
+        public static T ValueOrDefault<T>(this NXNode n, T def)
+        {
+            NXValuedNode<T> nxvn = n as NXValuedNode<T>;
+            return nxvn != null ? nxvn.Value : def;
+        }
+
+        public static T ValueOrDie<T>(this NXNode n)
+        {
+            return ((NXValuedNode<T>)n).Value;
         }
     }
 }
