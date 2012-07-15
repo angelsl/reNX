@@ -31,24 +31,11 @@
 // do so, delete this exception statement from your version.
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace reNX
 {
-    internal static class ExtensionMethods
-    {
-        internal static string ReadNXString(this BinaryReader br)
-        {
-            ushort len = br.ReadUInt16();
-            return Encoding.UTF8.GetString(br.ReadBytes(len));
-        }
-
-        internal static string ReadASCIIString(this BinaryReader br, int length)
-        {
-            return Encoding.ASCII.GetString(br.ReadBytes(length));
-        }
-    }
-
     internal static class Util
     {
         internal static T Die<T>(string cause)

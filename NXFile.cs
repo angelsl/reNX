@@ -52,7 +52,7 @@ namespace reNX
         private NXNode _maindir;
         internal long[] _mp3Offsets;
         internal NXNode[] _nodeOffsets;
-        private BinaryReader _r;
+        private NXStreamReader _r;
         private long[] _strOffsets;
 
         private string[] _strings;
@@ -77,7 +77,7 @@ namespace reNX
         {
             _file = input;
             _flags = flag;
-            _r = new BinaryReader(_file);
+            _r = new NXStreamReader(_file);
             Parse();
         }
 
@@ -146,7 +146,7 @@ namespace reNX
                 _mp3Offsets = new long[_r.ReadUInt32()];
                 ulong mp3Start = _r.ReadUInt64();
 
-                _r.BaseStream.Position = (long)strStart;
+                _r.Seek((long)strStart);
                 for (uint i = 0; i < _strOffsets.LongLength; ++i) {
                     _strOffsets[i] = _file.Position;
                     ushort l = _r.ReadUInt16();
@@ -158,7 +158,8 @@ namespace reNX
 
                 _file.Position = (long)nodeStart;
                 uint nextId = 0;
-                _maindir = NXNode.ParseNode(_r, ref nextId, null, this);
+                using(NXByteArrayReader nbar = new NXByteArrayReader(_r.ReadBytes(15*_nodeOffsets.Length)))
+                    _maindir = NXNode.ParseNode(nbar, ref nextId, null, this);
             }
         }
 
@@ -171,7 +172,7 @@ namespace reNX
                     return _strings[id];
                 long orig = _file.Position;
                 _file.Position = _strOffsets[id];
-                string ret = _r.ReadNXString();
+                string ret = _r.ReadUInt16PrefixedUTF8String();
                 _strings[id] = ret;
                 _file.Position = orig;
                 return ret;
@@ -180,7 +181,7 @@ namespace reNX
 
         private void ReadOffsetTable(long[] array, long offset)
         {
-            _r.BaseStream.Position = offset;
+            _r.Seek(offset);
             for (uint i = 0; i < array.LongLength; ++i)
                 array[i] = (long)_r.ReadUInt64();
         }

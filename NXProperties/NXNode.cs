@@ -139,7 +139,7 @@ namespace reNX.NXProperties
             _children.Add(child.Name, child);
         }
 
-        internal static NXNode ParseNode(BinaryReader r, ref uint nextId, NXNode parent, NXFile file)
+        internal static NXNode ParseNode(NXByteArrayReader r, ref uint nextId, NXNode parent, NXFile file)
         {
             string name = file.GetString(r.ReadUInt32());
             byte type = r.ReadByte();
