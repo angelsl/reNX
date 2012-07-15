@@ -136,8 +136,6 @@ namespace reNX.NXProperties
 
         private void AddChild(NXNode child)
         {
-            if (_children == null)
-                _children = new Dictionary<string, NXNode>(7);
             _children.Add(child.Name, child);
         }
 
@@ -180,6 +178,7 @@ namespace reNX.NXProperties
             file._nodeOffsets[nextId++] = ret;
             if ((type & 0x80) != 0x80) return ret;
             ushort childCount = r.ReadUInt16();
+            ret._children = new Dictionary<string, NXNode>(childCount);
             for (; childCount > 0; --childCount) ret.AddChild(ParseNode(r, ref nextId, parent, file));
             return ret;
         }
