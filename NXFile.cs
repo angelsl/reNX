@@ -31,23 +31,25 @@
 // do so, delete this exception statement from your version.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using reNX.NXProperties;
 
 namespace reNX
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public sealed class NXFile : IDisposable
     {
         private readonly bool _disposeStream;
         internal readonly NXReadSelection _flags;
         internal readonly object _lock = new object();
-        private NXNode _maindir;
 
         internal long[] _canvasOffsets;
         private bool _disposed;
         internal Stream _file;
+        private NXNode _maindir;
         internal long[] _mp3Offsets;
         internal NXNode[] _nodeOffsets;
         private BinaryReader _r;
@@ -79,6 +81,22 @@ namespace reNX
             Parse();
         }
 
+        /// <summary>
+        /// The destructor.
+        /// </summary>
+        ~NXFile()
+        {
+            Dispose();
+        }
+
+        /// <summary>
+        /// The base node of this NX file.
+        /// </summary>
+        public NXNode BaseNode
+        {
+            get { return _maindir; }
+        }
+
         #region IDisposable Members
 
         /// <summary>
@@ -87,7 +105,7 @@ namespace reNX
         public void Dispose()
         {
             _disposed = true;
-            if(_disposeStream) _file.Close();
+            if (_disposeStream) _file.Close();
             _r = null;
             _file = null;
             _canvasOffsets = null;
@@ -96,10 +114,16 @@ namespace reNX
             _strOffsets = null;
             _maindir = null;
             _strings = null;
+            GC.SuppressFinalize(this);
         }
 
         #endregion
 
+        /// <summary>
+        ///   Resolves a path in the form "/a/b/c/.././d/e/f/".
+        /// </summary>
+        /// <param name="path"> The path to resolve. </param>
+        /// <exception cref="System.Collections.Generic.KeyNotFoundException">The path is invalid.</exception>
         public NXNode ResolvePath(string path)
         {
             CheckDisposed();
@@ -133,7 +157,6 @@ namespace reNX
                 ReadOffsetTable(_mp3Offsets, (long)mp3Start);
 
                 _file.Position = (long)nodeStart;
-
                 uint nextId = 0;
                 _maindir = NXNode.ParseNode(_r, ref nextId, null, this);
             }
