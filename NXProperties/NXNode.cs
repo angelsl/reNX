@@ -142,20 +142,24 @@ namespace reNX.NXProperties
         internal static NXNode ParseNode(NXByteArrayReader r, ref uint nextId, NXNode parent, NXFile file)
         {
             string name = file.GetString(r.ReadUInt32());
-            byte type = r.ReadByte();
+            ushort childCount = r.ReadUInt16();
+            ushort type = r.ReadUInt16();
             NXNode ret;
-            switch (type & 0x7F) {
+            switch (type) {
                 case 0:
                     ret = new NXNode(name, parent, file);
+                    r.Jump(8);
                     break;
                 case 1:
                     ret = new NXValuedNode<int>(name, parent, file, r.ReadInt32());
+                    r.Jump(4);
                     break;
                 case 2:
                     ret = new NXValuedNode<double>(name, parent, file, r.ReadDouble());
                     break;
                 case 3:
                     ret = new NXStringNode(name, parent, file, r.ReadUInt32());
+                    r.Jump(4);
                     break;
                 case 4:
                     int x = r.ReadInt32();
@@ -164,22 +168,24 @@ namespace reNX.NXProperties
                     break;
                 case 5:
                     ret = new NXCanvasNode(name, parent, file, r.ReadUInt32());
+                    r.Jump(4);
                     break;
                 case 6:
                     ret = new NXMP3Node(name, parent, file, r.ReadUInt32());
-                    break;
-                case 7:
-                    ret = new NXLinkNode(name, parent, file, r.ReadUInt32());
+                    r.Jump(4);
                     break;
                 default:
-                    Util.Die(string.Format("NX node has invalid type {0}; dying", type & 0x7f));
+                    Util.Die(string.Format("NX node has invalid type {0}; dying", type));
                     return null;
             }
             file._nodeOffsets[nextId++] = ret;
-            if ((type & 0x80) != 0x80) return ret;
-            ushort childCount = r.ReadUInt16();
+            if (childCount < 1) { r.Jump(4); return ret;}
+            uint firstChild = r.ReadUInt32();
+            long origPos = r.Position;
+            r.Seek(firstChild*20);
             ret._children = new Dictionary<string, NXNode>(childCount);
-            for (; childCount > 0; --childCount) ret.AddChild(ParseNode(r, ref nextId, parent, file));
+            for (; childCount > 0; --childCount) ret.AddChild(ParseNode(r, ref firstChild, parent, file));
+            r.Seek(origPos);
             return ret;
         }
     }

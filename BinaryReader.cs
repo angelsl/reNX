@@ -198,13 +198,13 @@ namespace reNX
 
         public override void Seek(long position)
         {
-            if(position >= _end) throw new IndexOutOfRangeException("Cannot seek out of backing array.");
+            if(position > _end) throw new IndexOutOfRangeException("Cannot seek out of backing array.");
             _pos = position;
         }
 
         public override void Jump(long bytes)
         {
-            if (_pos+bytes >= _end) throw new IndexOutOfRangeException("Cannot seek out of backing array.");
+            if (_pos+bytes > _end) throw new IndexOutOfRangeException("Cannot seek out of backing array.");
             _pos += bytes;
         }
 

@@ -134,7 +134,7 @@ namespace reNX
         {
             _file.Position = 0;
             lock (_lock) {
-                if (_r.ReadASCIIString(4) != "PKG2")
+                if (_r.ReadASCIIString(4) != "PKG3")
                     Util.Die("NX file has invalid header; invalid magic");
                 _nodeOffsets = new NXNode[Util.TrueOrDie(_r.ReadUInt32(), i => i > 0, "NX file has no nodes!")];
                 ulong nodeStart = _r.ReadUInt64();
@@ -158,7 +158,7 @@ namespace reNX
 
                 _file.Position = (long)nodeStart;
                 uint nextId = 0;
-                using(NXByteArrayReader nbar = new NXByteArrayReader(_r.ReadBytes(15*_nodeOffsets.Length)))
+                using(NXByteArrayReader nbar = new NXByteArrayReader(_r.ReadBytes(20*_nodeOffsets.Length)))
                     _maindir = NXNode.ParseNode(nbar, ref nextId, null, this);
             }
         }
