@@ -31,6 +31,8 @@
 // do so, delete this exception statement from your version.
 
 using System;
+using System.Drawing;
+using System.Runtime.InteropServices;
 
 namespace reNX
 {
@@ -50,5 +52,17 @@ namespace reNX
         {
             return verifier(value) ? value : Die<T>(deathCause);
         }
+
+#if WIN32
+        [DllImport("lz4_32.dll", EntryPoint = "LZ4_uncompress")]
+        internal static extern int EDecompressLZ4(IntPtr source, IntPtr dest, int outputLen);
+#elif WIN64
+        [DllImport("lz4_64.dll", EntryPoint = "LZ4_uncompress")]
+        internal static extern int EDecompressLZ4(IntPtr source, IntPtr dest, int outputLen);
+#else
+#error No architecture selected!
+#endif
+
+
     }
 }

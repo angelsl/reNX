@@ -47,13 +47,13 @@ namespace reNX
 
         internal long[] _canvasOffsets;
         private bool _disposed;
-        internal Stream _file;
+        private Stream _file;
         private NXNode _maindir;
         internal long[] _mp3Offsets;
         internal NXReader _n;
         internal long _nNodeStart;
         internal NXNode[] _nodeOffsets;
-        private NXStreamReader _r;
+        internal NXStreamReader _r;
         private long[] _strOffsets;
 
         private string[] _strings;

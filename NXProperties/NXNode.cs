@@ -243,7 +243,7 @@ namespace reNX.NXProperties
     /// <typeparam name="T"> The type of the contained lazily-loaded value. </typeparam>
     public abstract class NXLazyValuedNode<T> : NXValuedNode<T>
     {
-        private bool _loaded;
+        protected bool _loaded;
 
         protected NXLazyValuedNode(string name, NXNode parent, NXFile file, ushort childCount, uint firstChildId)
             : base(name, parent, file, childCount, firstChildId)
@@ -257,13 +257,19 @@ namespace reNX.NXProperties
             get
             {
                 _file.CheckDisposed();
-                if (!_loaded)
-                    lock (_file._lock) {
-                        _value = LoadValue();
-                        _loaded = true;
-                    }
+                CheckLoad();
                 return _value;
             }
+        }
+
+        protected void CheckLoad()
+        {
+            if (!_loaded)
+                lock (_file._lock)
+                {
+                    _value = LoadValue();
+                    _loaded = true;
+                }
         }
 
         protected abstract T LoadValue();

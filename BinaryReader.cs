@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -10,6 +8,17 @@ namespace reNX
     internal abstract class NXReader : IDisposable
     {
         public abstract long Position { get; }
+
+        #region IDisposable Members
+
+        /// <summary>
+        ///   Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        /// <filterpriority>2</filterpriority>
+        public abstract void Dispose();
+
+        #endregion
+
         public abstract void Seek(long position);
         public abstract void Jump(long bytes);
         public abstract byte ReadByte();
@@ -22,6 +31,7 @@ namespace reNX
         public abstract float ReadSingle();
         public abstract double ReadDouble();
         public abstract byte[] ReadBytes(int count);
+
         public string ReadUInt16PrefixedUTF8String()
         {
             return ReadString(ReadUInt16(), Encoding.UTF8);
@@ -36,20 +46,14 @@ namespace reNX
         {
             return enc.GetString(ReadBytes(len));
         }
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        /// <filterpriority>2</filterpriority>
-        public abstract void Dispose();
     }
 
     internal unsafe class NXStreamReader : NXReader
     {
-        private Stream _s;
-        private byte* _rPtr;
-        private GCHandle _rHandle;
         private byte[] _rBuf;
+        private GCHandle _rHandle;
+        private byte* _rPtr;
+        private Stream _s;
 
         public NXStreamReader(Stream input)
         {
@@ -59,14 +63,14 @@ namespace reNX
             _rPtr = (byte*)_rHandle.AddrOfPinnedObject();
         }
 
-        ~NXStreamReader()
-        {
-            Dispose();
-        }
-
         public override long Position
         {
             get { return _s.Position; }
+        }
+
+        ~NXStreamReader()
+        {
+            Dispose();
         }
 
         public override void Seek(long position)
@@ -142,7 +146,7 @@ namespace reNX
         }
 
         /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        ///   Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         /// <filterpriority>2</filterpriority>
         public override void Dispose()
@@ -158,11 +162,11 @@ namespace reNX
 
     internal unsafe class NXByteArrayReader : NXReader
     {
-        private byte* _ptr;
-        private GCHandle _handle;
         private byte[] _array;
-        private long _pos;
         private long _end;
+        private GCHandle _handle;
+        private long _pos;
+        private byte* _ptr;
 
         public NXByteArrayReader(byte[] buffer)
         {
@@ -173,13 +177,18 @@ namespace reNX
             _ptr = (byte*)_handle.AddrOfPinnedObject();
         }
 
+        public override long Position
+        {
+            get { return _pos; }
+        }
+
         ~NXByteArrayReader()
         {
             Dispose();
         }
 
         /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        ///   Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         /// <filterpriority>2</filterpriority>
         public override void Dispose()
@@ -191,20 +200,15 @@ namespace reNX
             GC.SuppressFinalize(this);
         }
 
-        public override long Position
-        {
-            get { return _pos; }
-        }
-
         public override void Seek(long position)
         {
-            if(position > _end) throw new IndexOutOfRangeException("Cannot seek out of backing array.");
+            if (position > _end) throw new IndexOutOfRangeException("Cannot seek out of backing array.");
             _pos = position;
         }
 
         public override void Jump(long bytes)
         {
-            if (_pos+bytes > _end) throw new IndexOutOfRangeException("Cannot seek out of backing array.");
+            if (_pos + bytes > _end) throw new IndexOutOfRangeException("Cannot seek out of backing array.");
             _pos += bytes;
         }
 
