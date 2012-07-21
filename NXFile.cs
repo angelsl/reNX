@@ -38,7 +38,6 @@ using reNX.NXProperties;
 namespace reNX
 {
     /// <summary>
-    /// 
     /// </summary>
     public sealed class NXFile : IDisposable
     {
@@ -51,6 +50,8 @@ namespace reNX
         internal Stream _file;
         private NXNode _maindir;
         internal long[] _mp3Offsets;
+        internal NXReader _n;
+        internal long _nNodeStart;
         internal NXNode[] _nodeOffsets;
         private NXStreamReader _r;
         private long[] _strOffsets;
@@ -82,15 +83,7 @@ namespace reNX
         }
 
         /// <summary>
-        /// The destructor.
-        /// </summary>
-        ~NXFile()
-        {
-            Dispose();
-        }
-
-        /// <summary>
-        /// The base node of this NX file.
+        ///   The base node of this NX file.
         /// </summary>
         public NXNode BaseNode
         {
@@ -106,6 +99,12 @@ namespace reNX
         {
             _disposed = true;
             if (_disposeStream) _file.Close();
+            if (_n == _r) _n.Dispose();
+            else {
+                _n.Dispose();
+                _r.Dispose();
+            }
+            _n = null;
             _r = null;
             _file = null;
             _canvasOffsets = null;
@@ -118,6 +117,14 @@ namespace reNX
         }
 
         #endregion
+
+        /// <summary>
+        ///   The destructor.
+        /// </summary>
+        ~NXFile()
+        {
+            Dispose();
+        }
 
         /// <summary>
         ///   Resolves a path in the form "/a/b/c/.././d/e/f/".
@@ -158,8 +165,11 @@ namespace reNX
 
                 _file.Position = (long)nodeStart;
                 uint nextId = 0;
-                using(NXByteArrayReader nbar = new NXByteArrayReader(_r.ReadBytes(20*_nodeOffsets.Length)))
-                    _maindir = NXNode.ParseNode(nbar, ref nextId, null, this);
+                bool lowMem = ((_flags & NXReadSelection.LowMemory) == NXReadSelection.LowMemory);
+                _n = lowMem ? (NXReader)_r : new NXByteArrayReader(_r.ReadBytes(_nodeOffsets.Length*20));
+                _nNodeStart = (long)(lowMem ? nodeStart : 0);
+                _n.Seek(_nNodeStart);
+                _maindir = NXNode.ParseNode(_n, ref nextId, null, this);
             }
         }
 
@@ -222,6 +232,11 @@ namespace reNX
         ///   Set this flag to completely disable loading of canvas properties.
         /// </summary>
         NeverParseCanvas = 8,
+
+        /// <summary>
+        ///   Set this flag to disable loading all node data into memory.
+        /// </summary>
+        LowMemory = 16,
 
         /// <summary>
         ///   Set this flag to disable lazy loading of string, MP3 and canvas properties.

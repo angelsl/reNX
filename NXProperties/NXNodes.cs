@@ -29,19 +29,21 @@
 // If you modify this library, you may extend this exception to your version
 // of the library, but you are not obligated to do so. If you do not wish to
 // do so, delete this exception statement from your version.
+
 using System;
 using System.Drawing;
 
 namespace reNX.NXProperties
 {
     /// <summary>
-    /// An optionally lazily-loaded string node, containing a string.
+    ///   An optionally lazily-loaded string node, containing a string.
     /// </summary>
     public sealed class NXStringNode : NXLazyValuedNode<string>
     {
         private readonly uint _id;
 
-        internal NXStringNode(string name, NXNode parent, NXFile file, uint strId) : base(name, parent, file)
+        internal NXStringNode(string name, NXNode parent, NXFile file, uint strId, ushort childCount, uint firstChildId)
+            : base(name, parent, file, childCount, firstChildId)
         {
             _id = strId;
         }
@@ -53,14 +55,14 @@ namespace reNX.NXProperties
     }
 
     /// <summary>
-    /// An optionally lazily-loaded canvas node, containing a bitmap.
+    ///   An optionally lazily-loaded canvas node, containing a bitmap.
     /// </summary>
     public sealed class NXCanvasNode : NXLazyValuedNode<Bitmap>
     {
         private uint _id;
 
-        internal NXCanvasNode(string name, NXNode parent, NXFile file, uint id)
-            : base(name, parent, file)
+        internal NXCanvasNode(string name, NXNode parent, NXFile file, uint id, ushort childCount, uint firstChildId)
+            : base(name, parent, file, childCount, firstChildId)
         {
             _id = id;
         }
@@ -70,16 +72,16 @@ namespace reNX.NXProperties
             throw new NotImplementedException();
         }
     }
-    
+
     /// <summary>
-    /// An optionally lazily-loaded canvas node, containing an MP3 file in a byte array.
+    ///   An optionally lazily-loaded canvas node, containing an MP3 file in a byte array.
     /// </summary>
     public sealed class NXMP3Node : NXLazyValuedNode<byte[]>
     {
         private uint _id;
 
-        internal NXMP3Node(string name, NXNode parent, NXFile file, uint id)
-            : base(name, parent, file)
+        internal NXMP3Node(string name, NXNode parent, NXFile file, uint id, ushort childCount, uint firstChildId)
+            : base(name, parent, file, childCount, firstChildId)
         {
             _id = id;
         }
@@ -87,25 +89,6 @@ namespace reNX.NXProperties
         protected override byte[] LoadValue()
         {
             throw new NotImplementedException();
-        }
-    }
-
-    /// <summary>
-    /// A lazily-resolved link node, linking to a separate node.
-    /// </summary>
-    public sealed class NXLinkNode : NXLazyValuedNode<NXNode>
-    {
-        private readonly uint _id;
-
-        internal NXLinkNode(string name, NXNode parent, NXFile file, uint id)
-            : base(name, parent, file)
-        {
-            _id = id;
-        }
-
-        protected override NXNode LoadValue()
-        {
-            return _file._nodeOffsets[_id];
         }
     }
 }
