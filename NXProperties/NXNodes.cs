@@ -64,8 +64,8 @@ namespace reNX.NXProperties
     /// </summary>
     public sealed class NXCanvasNode : NXLazyValuedNode<Bitmap>, IDisposable
     {
-        private uint _id;
         private GCHandle _gcH;
+        private uint _id;
 
         internal NXCanvasNode(string name, NXNode parent, NXFile file, uint id, ushort childCount, uint firstChildId)
             : base(name, parent, file, childCount, firstChildId)
@@ -75,12 +75,33 @@ namespace reNX.NXProperties
                 CheckLoad();
         }
 
+        #region IDisposable Members
+
+        /// <summary>
+        ///   Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        /// <filterpriority>2</filterpriority>
+        public void Dispose()
+        {
+            try {
+                lock (_file._lock) {
+                    _loaded = false;
+                    _value.Dispose();
+                    _value = null;
+                    _gcH.Free();
+                }
+            } catch (ObjectDisposedException) {}
+        }
+
+        #endregion
+
         protected override Bitmap LoadValue()
         {
-            if (_file._canvasOffsets.Length == 0 || _file._flags.HasFlag(NXReadSelection.NeverParseCanvas)) return null;
-            lock(_file._lock) {
+            if (_file._canvasOffset < 0 || _file._flags.HasFlag(NXReadSelection.NeverParseCanvas)) return null;
+            lock (_file._lock) {
                 NXReader r = _file._r;
-                r.Seek(_file._canvasOffsets[_id]);
+                r.Seek(_file._canvasOffset + _id*8);
+                r.Seek((long)r.ReadUInt64());
                 ushort width = r.ReadUInt16();
                 ushort height = r.ReadUInt16();
                 byte[] cdata = r.ReadBytes((int)r.ReadUInt32());
@@ -96,22 +117,6 @@ namespace reNX.NXProperties
                 return new Bitmap(width, height, 4*width, PixelFormat.Format32bppArgb, outBuf);
             }
         }
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        /// <filterpriority>2</filterpriority>
-        public void Dispose()
-        {
-            try {
-                lock (_file._lock) {
-                    _loaded = false;
-                    _value.Dispose();
-                    _value = null;
-                    _gcH.Free();
-                }
-            } catch (ObjectDisposedException) {}
-        }
     }
 
     /// <summary>
@@ -125,16 +130,17 @@ namespace reNX.NXProperties
             : base(name, parent, file, childCount, firstChildId)
         {
             _id = id;
-            if(_file._flags.HasFlag(NXReadSelection.EagerParseMP3))
+            if (_file._flags.HasFlag(NXReadSelection.EagerParseMP3))
                 CheckLoad();
         }
 
         protected override byte[] LoadValue()
         {
-            if (_file._mp3Offsets.Length == 0) return null;
-            lock(_file._lock) {
+            if (_file._mp3Offset < 0) return null;
+            lock (_file._lock) {
                 NXReader r = _file._r;
-                r.Seek(_file._mp3Offsets[_id]);
+                r.Seek(_file._mp3Offset + _id*8);
+                r.Seek((long)r.ReadUInt64());
                 return r.ReadBytes((int)r.ReadUInt32()); // sadly, we cannot handle a true uint sized MP3 yet. oh well
             }
         }

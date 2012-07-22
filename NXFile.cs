@@ -46,15 +46,15 @@ namespace reNX
         internal readonly NXReadSelection _flags;
         internal readonly object _lock = new object();
 
-        internal long[] _canvasOffsets;
+        internal long _canvasOffset = -1;
         private bool _disposed;
         private Stream _file;
         private NXNode _maindir;
-        internal long[] _mp3Offsets;
+        internal long _mp3Offset = -1;
         internal NXReader _n;
         internal long _nNodeStart;
-        internal NXNode[] _nodeOffsets;
-        internal NXStreamReader _r;
+        internal NXNode[] _nodeById;
+        internal NXReader _r;
         private long[] _strOffsets;
 
         private string[] _strings;
@@ -83,6 +83,14 @@ namespace reNX
             Parse();
         }
 
+        public NXFile(byte[] input, NXReadSelection flag = NXReadSelection.None)
+        {
+            _file = null;
+            _flags = flag;
+            _r = new NXByteArrayReader(input);
+            Parse();
+        }
+
         /// <summary>
         ///   The base node of this NX file.
         /// </summary>
@@ -108,9 +116,7 @@ namespace reNX
             _n = null;
             _r = null;
             _file = null;
-            _canvasOffsets = null;
-            _mp3Offsets = null;
-            _nodeOffsets = null;
+            _nodeById = null;
             _strOffsets = null;
             _maindir = null;
             _strings = null;
@@ -140,33 +146,34 @@ namespace reNX
 
         private void Parse()
         {
-            _file.Position = 0;
+            //_file.Position = 0;
+            _r.Seek(0);
             lock (_lock) {
                 if (_r.ReadASCIIString(4) != "PKG3")
                     Util.Die("NX file has invalid header; invalid magic");
-                _nodeOffsets = new NXNode[Util.TrueOrDie(_r.ReadUInt32(), i => i > 0, "NX file has no nodes!")];
+                _nodeById = new NXNode[Util.TrueOrDie(_r.ReadUInt32(), i => i > 0, "NX file has no nodes!")];
                 ulong nodeStart = _r.ReadUInt64();
                 _strOffsets = new long[Util.TrueOrDie(_r.ReadUInt32(), i => i > 0, "NX file has no strings!")];
                 _strings = new string[_strOffsets.Length];
                 ulong strStart = _r.ReadUInt64();
-                _canvasOffsets = new long[_r.ReadUInt32()];
-                ulong canvasStart = _r.ReadUInt64();
-                _mp3Offsets = new long[_r.ReadUInt32()];
-                ulong mp3Start = _r.ReadUInt64();
+                if (_r.ReadUInt32() > 0)
+                    _canvasOffset = (long)_r.ReadUInt64();
+                else _r.Jump(8);
+                if (_r.ReadUInt32() > 0)
+                    _mp3Offset = (long)_r.ReadUInt64();
+                else
+                    _r.Jump(8);
 
                 _r.Seek((long)strStart);
                 for (uint i = 0; i < _strOffsets.LongLength; ++i) {
-                    _strOffsets[i] = _file.Position;
-                    ushort l = _r.ReadUInt16();
-                    _file.Position += l;
+                    long c = _r.Position;
+                    _strOffsets[i] = c;
+                    _r.Seek(c + _r.ReadUInt16() + 2);
                 }
 
-                ReadOffsetTable(_canvasOffsets, (long)canvasStart);
-                ReadOffsetTable(_mp3Offsets, (long)mp3Start);
-
-                _file.Position = (long)nodeStart;
+                _r.Seek((long)nodeStart);
                 bool lowMem = _flags.HasFlag(NXReadSelection.LowMemory);
-                _n = lowMem ? (NXReader)_r : new NXByteArrayReader(_r.ReadBytes(_nodeOffsets.Length*20));
+                _n = lowMem ? _r : new NXByteArrayReader(_r.ReadBytes(_nodeById.Length*20));
                 _nNodeStart = (long)(lowMem ? nodeStart : 0);
                 _n.Seek(_nNodeStart);
                 _maindir = NXNode.ParseNode(_n, 0, null, this);
@@ -180,20 +187,13 @@ namespace reNX
             lock (_lock) {
                 if (_strings[id] != null)
                     return _strings[id];
-                long orig = _file.Position;
-                _file.Position = _strOffsets[id];
+                long orig = _r.Position;
+                _r.Seek(_strOffsets[id]);
                 string ret = _r.ReadUInt16PrefixedUTF8String();
                 _strings[id] = ret;
-                _file.Position = orig;
+                _r.Seek(orig);
                 return ret;
             }
-        }
-
-        private void ReadOffsetTable(long[] array, long offset)
-        {
-            _r.Seek(offset);
-            for (uint i = 0; i < array.LongLength; ++i)
-                array[i] = (long)_r.ReadUInt64();
         }
 
         internal void CheckDisposed()
@@ -239,7 +239,7 @@ namespace reNX
         LowMemory = 16,
 
         /// <summary>
-        /// Set this flag to disable lazy loading of nodes (construct all nodes immediately).
+        ///   Set this flag to disable lazy loading of nodes (construct all nodes immediately).
         /// </summary>
         EagerParseFile = 32,
 

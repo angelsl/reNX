@@ -31,7 +31,6 @@
 // do so, delete this exception statement from your version.
 
 using System;
-using System.Drawing;
 using System.Runtime.InteropServices;
 
 namespace reNX
@@ -67,7 +66,5 @@ namespace reNX
 #else
 #error No architecture selected!
 #endif
-
-
     }
 }

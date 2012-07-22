@@ -152,7 +152,7 @@ namespace reNX.NXProperties
                 _children = new Dictionary<string, NXNode>(_childCount);
                 uint nId = _firstChild;
                 for (ushort i = 0; i < _childCount; ++i) {
-                    _file._n.Seek(nId * 20 + _file._nNodeStart);
+                    _file._n.Seek(nId*20 + _file._nNodeStart);
                     AddChild(ParseNode(_file._n, nId++, this, _file));
                 }
             }
@@ -202,7 +202,7 @@ namespace reNX.NXProperties
                         return null;
                 }
                 r.Jump(4);
-                file._nodeOffsets[nextId] = ret;
+                file._nodeById[nextId] = ret;
 
                 if (file._flags.HasFlag(NXReadSelection.EagerParseFile))
                     ret.CheckChild();
@@ -271,8 +271,7 @@ namespace reNX.NXProperties
         protected void CheckLoad()
         {
             if (!_loaded)
-                lock (_file._lock)
-                {
+                lock (_file._lock) {
                     _value = LoadValue();
                     _loaded = true;
                 }
