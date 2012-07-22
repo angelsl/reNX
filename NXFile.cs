@@ -52,6 +52,7 @@ namespace reNX
         private NXNode _maindir;
         internal long _mp3Offset = -1;
         internal NXReader _n;
+        private long _nodeStart;
         internal long _nNodeStart;
         internal NXNode[] _nodeById;
         internal NXReader _r;
@@ -96,7 +97,18 @@ namespace reNX
         /// </summary>
         public NXNode BaseNode
         {
-            get { return _maindir; }
+            get
+            {
+                if(_maindir == null) {
+                    _r.Seek(_nodeStart);
+                    bool lowMem = _flags.HasFlag(NXReadSelection.LowMemory);
+                    _n = lowMem ? _r : new NXByteArrayReader(_r.ReadBytes(_nodeById.Length * 20));
+                    _nNodeStart = lowMem ? _nodeStart : 0;
+                    _n.Seek(_nNodeStart);
+                    _maindir = NXNode.ParseNode(_n, 0, null, this);
+                }
+                return _maindir;
+            }
         }
 
         #region IDisposable Members
@@ -110,7 +122,7 @@ namespace reNX
             if (_disposeStream) _file.Close();
             if (_n == _r) _n.Dispose();
             else {
-                _n.Dispose();
+                if(_n != null) _n.Dispose();
                 _r.Dispose();
             }
             _n = null;
@@ -141,7 +153,7 @@ namespace reNX
         public NXNode ResolvePath(string path)
         {
             CheckDisposed();
-            return (path.StartsWith("/") ? path.Substring(1) : path).Split('/').Where(node => node != ".").Aggregate(_maindir, (current, node) => node == ".." ? current.Parent : current[node]);
+            return (path.StartsWith("/") ? path.Substring(1) : path).Split('/').Where(node => node != ".").Aggregate(BaseNode, (current, node) => node == ".." ? current.Parent : current[node]);
         }
 
         private void Parse()
@@ -152,7 +164,7 @@ namespace reNX
                 if (_r.ReadASCIIString(4) != "PKG3")
                     Util.Die("NX file has invalid header; invalid magic");
                 _nodeById = new NXNode[Util.TrueOrDie(_r.ReadUInt32(), i => i > 0, "NX file has no nodes!")];
-                ulong nodeStart = _r.ReadUInt64();
+                _nodeStart = (long)_r.ReadUInt64();
                 _strOffsets = new long[Util.TrueOrDie(_r.ReadUInt32(), i => i > 0, "NX file has no strings!")];
                 _strings = new string[_strOffsets.Length];
                 ulong strStart = _r.ReadUInt64();
@@ -170,13 +182,6 @@ namespace reNX
                     _strOffsets[i] = c;
                     _r.Seek(c + _r.ReadUInt16() + 2);
                 }
-
-                _r.Seek((long)nodeStart);
-                bool lowMem = _flags.HasFlag(NXReadSelection.LowMemory);
-                _n = lowMem ? _r : new NXByteArrayReader(_r.ReadBytes(_nodeById.Length*20));
-                _nNodeStart = (long)(lowMem ? nodeStart : 0);
-                _n.Seek(_nNodeStart);
-                _maindir = NXNode.ParseNode(_n, 0, null, this);
             }
         }
 
