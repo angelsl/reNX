@@ -33,6 +33,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using Assembine;
 
 namespace reNX.NXProperties
 {
@@ -149,14 +150,15 @@ namespace reNX.NXProperties
             if (_children != null || _childCount < 1) return;
             lock (_file._lock) {
                 _children = new Dictionary<string, NXNode>(_childCount);
-                _file._n.Seek(_firstChild*20 + _file._nNodeStart);
                 uint nId = _firstChild;
-                for (ushort i = 0; i < _childCount; ++i)
-                    AddChild(ParseNode(_file._n, ref nId, this, _file));
+                for (ushort i = 0; i < _childCount; ++i) {
+                    _file._n.Seek(nId * 20 + _file._nNodeStart);
+                    AddChild(ParseNode(_file._n, nId++, this, _file));
+                }
             }
         }
 
-        internal static NXNode ParseNode(NXReader r, ref uint nextId, NXNode parent, NXFile file)
+        internal static NXNode ParseNode(NXReader r, uint nextId, NXNode parent, NXFile file)
         {
             lock (file._lock) {
                 string name = file.GetString(r.ReadUInt32());
@@ -200,7 +202,11 @@ namespace reNX.NXProperties
                         return null;
                 }
                 r.Jump(4);
-                file._nodeOffsets[nextId++] = ret;
+                file._nodeOffsets[nextId] = ret;
+
+                if (file._flags.HasFlag(NXReadSelection.EagerParseFile))
+                    ret.CheckChild();
+
                 return ret;
             }
         }

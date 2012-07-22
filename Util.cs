@@ -53,6 +53,11 @@ namespace reNX
             return verifier(value) ? value : Die<T>(deathCause);
         }
 
+        internal static bool HasFlag(this NXReadSelection tnrs, NXReadSelection nrs)
+        {
+            return ((tnrs & nrs) == nrs);
+        }
+
 #if WIN32
         [DllImport("lz4_32.dll", EntryPoint = "LZ4_uncompress")]
         internal static extern int EDecompressLZ4(IntPtr source, IntPtr dest, int outputLen);

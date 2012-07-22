@@ -33,6 +33,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using Assembine;
 using reNX.NXProperties;
 
 namespace reNX
@@ -164,12 +165,11 @@ namespace reNX
                 ReadOffsetTable(_mp3Offsets, (long)mp3Start);
 
                 _file.Position = (long)nodeStart;
-                uint nextId = 0;
-                bool lowMem = ((_flags & NXReadSelection.LowMemory) == NXReadSelection.LowMemory);
+                bool lowMem = _flags.HasFlag(NXReadSelection.LowMemory);
                 _n = lowMem ? (NXReader)_r : new NXByteArrayReader(_r.ReadBytes(_nodeOffsets.Length*20));
                 _nNodeStart = (long)(lowMem ? nodeStart : 0);
                 _n.Seek(_nNodeStart);
-                _maindir = NXNode.ParseNode(_n, ref nextId, null, this);
+                _maindir = NXNode.ParseNode(_n, 0, null, this);
             }
         }
 
@@ -229,7 +229,7 @@ namespace reNX
         EagerParseCanvas = 4,
 
         /// <summary>
-        ///   Set this flag to completely disable loading of canvas properties.
+        ///   Set this flag to completely disable loading of canvas properties. This takes precedence over EagerParseCanvas.
         /// </summary>
         NeverParseCanvas = 8,
 
@@ -239,8 +239,13 @@ namespace reNX
         LowMemory = 16,
 
         /// <summary>
+        /// Set this flag to disable lazy loading of nodes (construct all nodes immediately).
+        /// </summary>
+        EagerParseFile = 32,
+
+        /// <summary>
         ///   Set this flag to disable lazy loading of string, MP3 and canvas properties.
         /// </summary>
-        EagerParseAll = EagerParseCanvas | EagerParseMP3 | EagerParseStrings,
+        EagerParseAllProperties = EagerParseCanvas | EagerParseMP3 | EagerParseStrings,
     }
 }

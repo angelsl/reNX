@@ -34,6 +34,7 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using Assembine;
 
 namespace reNX.NXProperties
 {
@@ -48,7 +49,7 @@ namespace reNX.NXProperties
             : base(name, parent, file, childCount, firstChildId)
         {
             _id = strId;
-            if ((_file._flags & NXReadSelection.EagerParseStrings) == NXReadSelection.EagerParseStrings)
+            if (_file._flags.HasFlag(NXReadSelection.EagerParseStrings))
                 CheckLoad();
         }
 
@@ -70,13 +71,13 @@ namespace reNX.NXProperties
             : base(name, parent, file, childCount, firstChildId)
         {
             _id = id;
-            if ((_file._flags & NXReadSelection.EagerParseCanvas) == NXReadSelection.EagerParseCanvas)
+            if (_file._flags.HasFlag(NXReadSelection.EagerParseCanvas))
                 CheckLoad();
         }
 
         protected override Bitmap LoadValue()
         {
-            if (_file._canvasOffsets.Length == 0) return null;
+            if (_file._canvasOffsets.Length == 0 || _file._flags.HasFlag(NXReadSelection.NeverParseCanvas)) return null;
             lock(_file._lock) {
                 NXReader r = _file._r;
                 r.Seek(_file._canvasOffsets[_id]);
@@ -124,7 +125,7 @@ namespace reNX.NXProperties
             : base(name, parent, file, childCount, firstChildId)
         {
             _id = id;
-            if((_file._flags & NXReadSelection.EagerParseMP3) == NXReadSelection.EagerParseMP3)
+            if(_file._flags.HasFlag(NXReadSelection.EagerParseMP3))
                 CheckLoad();
         }
 

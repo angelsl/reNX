@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>reNX</RootNamespace>
     <AssemblyName>reNX</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -87,7 +87,7 @@
     <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BinaryReader.cs" />
+    <Compile Include="Assembine\BinaryReader.cs" />
     <Compile Include="NXFile.cs" />
     <Compile Include="NXProperties\NXNode.cs" />
     <Compile Include="NXProperties\NXNodes.cs" />
