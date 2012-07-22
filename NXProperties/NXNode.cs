@@ -31,6 +31,7 @@
 // do so, delete this exception statement from your version.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using Assembine;
@@ -40,7 +41,7 @@ namespace reNX.NXProperties
     /// <summary>
     ///   A node containing no value.
     /// </summary>
-    public class NXNode
+    public class NXNode : IEnumerable<NXNode>
     {
         private readonly ushort _childCount;
         protected readonly NXFile _file;
@@ -209,6 +210,31 @@ namespace reNX.NXProperties
 
                 return ret;
             }
+        }
+
+        /// <summary>
+        /// Returns an enumerator that iterates through the collection.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="T:System.Collections.Generic.IEnumerator`1"/> that can be used to iterate through the collection.
+        /// </returns>
+        /// <filterpriority>1</filterpriority>
+        public IEnumerator<NXNode> GetEnumerator()
+        {
+            CheckChild();
+            return _children == null ? (IEnumerator<NXNode>)new NullEnumerator<NXNode>() : _children.Values.GetEnumerator();
+        }
+
+        /// <summary>
+        /// Returns an enumerator that iterates through a collection.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="T:System.Collections.IEnumerator"/> object that can be used to iterate through the collection.
+        /// </returns>
+        /// <filterpriority>2</filterpriority>
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 
