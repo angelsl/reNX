@@ -91,9 +91,15 @@ namespace reNX.NXProperties
                     _gcH.Free();
                 }
             } catch (ObjectDisposedException) {}
+            GC.SuppressFinalize(this);
         }
 
         #endregion
+
+        ~NXCanvasNode()
+        {
+            Dispose();
+        }
 
         protected override Bitmap LoadValue()
         {

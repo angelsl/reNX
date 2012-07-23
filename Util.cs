@@ -31,9 +31,10 @@
 // do so, delete this exception statement from your version.
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
 using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 
 namespace reNX
 {
@@ -59,6 +60,64 @@ namespace reNX
             return ((tnrs & nrs) == nrs);
         }
 
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        internal static extern SafeFileHandle CreateFile(
+            string lpFileName,
+            [MarshalAs(UnmanagedType.U4)] FileAccess dwDesiredAccess,
+            [MarshalAs(UnmanagedType.U4)] FileShare dwShareMode,
+            IntPtr lpSecurityAttributes,
+            [MarshalAs(UnmanagedType.U4)] FileMode dwCreationDisposition,
+            [MarshalAs(UnmanagedType.U4)] FileAttributes dwFlagsAndAttributes,
+            IntPtr hTemplateFile);
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        internal static extern IntPtr CreateFileMapping(
+            SafeFileHandle hFile,
+            IntPtr lpFileMappingAttributes,
+            FileMapProtection flProtect,
+            uint dwMaximumSizeHigh,
+            uint dwMaximumSizeLow,
+            [MarshalAs(UnmanagedType.LPTStr)] string lpName);
+
+        [Flags]
+        internal enum FileMapProtection : uint
+        {
+            PageReadonly = 0x02,
+            PageReadWrite = 0x04,
+            PageWriteCopy = 0x08,
+            PageExecuteRead = 0x20,
+            PageExecuteReadWrite = 0x40,
+            SectionCommit = 0x8000000,
+            SectionImage = 0x1000000,
+            SectionNoCache = 0x10000000,
+            SectionReserve = 0x4000000,
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        internal static extern IntPtr MapViewOfFile(
+            IntPtr hFileMappingObject,
+            FileMapAccess dwDesiredAccess,
+            uint dwFileOffsetHigh,
+            uint dwFileOffsetLow,
+            uint dwNumberOfBytesToMap);
+
+        [Flags]
+        internal enum FileMapAccess : uint
+        {
+            FileMapCopy = 0x0001,
+            FileMapWrite = 0x0002,
+            FileMapRead = 0x0004,
+            FileMapAllAccess = 0x001f,
+            FileMapExecute = 0x0020,
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool CloseHandle(IntPtr hObject);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        internal static extern bool UnmapViewOfFile(IntPtr lpBaseAddress);
+
 #if WIN32
         [DllImport("lz4_32.dll", EntryPoint = "LZ4_uncompress")]
         internal static extern int EDecompressLZ4(IntPtr source, IntPtr dest, int outputLen);
@@ -68,5 +127,51 @@ namespace reNX
 #else
 #error No architecture selected!
 #endif
+    }
+
+    internal unsafe class MemoryMappedFile : IDisposable
+    {
+        private bool _disposed;
+        private IntPtr _fmap;
+        private IntPtr _fview;
+        private SafeFileHandle _sfh;
+        private byte* _start;
+
+        internal MemoryMappedFile(string path)
+        {
+            _sfh = Util.CreateFile(path, FileAccess.Read, FileShare.Read, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
+            if (_sfh.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
+            _fmap = Util.CreateFileMapping(_sfh, IntPtr.Zero, Util.FileMapProtection.PageReadonly, 0, 0, null);
+            if (_fmap.ToInt32() == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
+            _fview = Util.MapViewOfFile(_fmap, Util.FileMapAccess.FileMapRead, 0, 0, 0);
+            if (_fmap.ToInt32() == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
+            _start = (byte*)_fview.ToPointer();
+        }
+
+        internal byte* Pointer
+        {
+            get
+            {
+                if (_disposed) throw new ObjectDisposedException("Memory mapped file");
+                return _start;
+            }
+        }
+
+        #region IDisposable Members
+
+        /// <summary>
+        ///   Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        /// <filterpriority>2</filterpriority>
+        public void Dispose()
+        {
+            if (_disposed) throw new ObjectDisposedException("Memory mapped file");
+            _disposed = true;
+            Util.UnmapViewOfFile(_fview);
+            Util.CloseHandle(_fmap);
+            Util.CloseHandle(_sfh.DangerousGetHandle());
+        }
+
+        #endregion
     }
 }

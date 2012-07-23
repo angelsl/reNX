@@ -34,6 +34,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using Assembine;
 
 namespace reNX.NXProperties
@@ -117,6 +118,31 @@ namespace reNX.NXProperties
             }
         }
 
+        #region IEnumerable<NXNode> Members
+
+        /// <summary>
+        ///   Returns an enumerator that iterates through the collection.
+        /// </summary>
+        /// <returns> A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection. </returns>
+        /// <filterpriority>1</filterpriority>
+        public IEnumerator<NXNode> GetEnumerator()
+        {
+            CheckChild();
+            return _children == null ? (IEnumerator<NXNode>)new NullEnumerator<NXNode>() : _children.Values.GetEnumerator();
+        }
+
+        /// <summary>
+        ///   Returns an enumerator that iterates through a collection.
+        /// </summary>
+        /// <returns> An <see cref="T:System.Collections.IEnumerator" /> object that can be used to iterate through the collection. </returns>
+        /// <filterpriority>2</filterpriority>
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        #endregion
+
         /// <summary>
         ///   Returns true if this node contains a child with the specified name.
         /// </summary>
@@ -159,50 +185,39 @@ namespace reNX.NXProperties
             }
         }
 
-        internal static NXNode ParseNode(NXReader r, uint nextId, NXNode parent, NXFile file)
+        internal static unsafe NXNode ParseNode(NXReader r, uint nextId, NXNode parent, NXFile file)
         {
             lock (file._lock) {
-                string name = file.GetString(r.ReadUInt32());
-                ushort childCount = r.ReadUInt16();
-                ushort type = r.ReadUInt16();
-                r.Jump(8);
-                uint firstChild = r.ReadUInt32();
-                r.Jump(-12);
+                r.ReadPointer(20);
+                NodeData nd = *((NodeData*)r.Pointer);
+                r.Jump(20);
+                string name = file.GetString(nd.NodeNameID);
                 NXNode ret;
-                switch (type) {
+                switch (nd.Type) {
                     case 0:
-                        ret = new NXNode(name, parent, file, childCount, firstChild);
-                        r.Jump(8);
+                        ret = new NXNode(name, parent, file, nd.ChildCount, nd.FirstChildID);
                         break;
                     case 1:
-                        ret = new NXValuedNode<int>(name, parent, file, r.ReadInt32(), childCount, firstChild);
-                        r.Jump(4);
+                        ret = new NXValuedNode<int>(name, parent, file, nd.Type1Data, nd.ChildCount, nd.FirstChildID);
                         break;
                     case 2:
-                        ret = new NXValuedNode<double>(name, parent, file, r.ReadDouble(), childCount, firstChild);
+                        ret = new NXValuedNode<double>(name, parent, file, nd.Type2Data, nd.ChildCount, nd.FirstChildID);
                         break;
                     case 3:
-                        ret = new NXStringNode(name, parent, file, r.ReadUInt32(), childCount, firstChild);
-                        r.Jump(4);
+                        ret = new NXStringNode(name, parent, file, nd.TypeIDData, nd.ChildCount, nd.FirstChildID);
                         break;
                     case 4:
-                        int x = r.ReadInt32();
-                        int y = r.ReadInt32();
-                        ret = new NXValuedNode<Point>(name, parent, file, new Point(x, y), childCount, firstChild);
+                        ret = new NXValuedNode<Point>(name, parent, file, new Point(nd.Type4DataX, nd.Type4DataY), nd.ChildCount, nd.FirstChildID);
                         break;
                     case 5:
-                        ret = new NXCanvasNode(name, parent, file, r.ReadUInt32(), childCount, firstChild);
-                        r.Jump(4);
+                        ret = new NXCanvasNode(name, parent, file, nd.TypeIDData, nd.ChildCount, nd.FirstChildID);
                         break;
                     case 6:
-                        ret = new NXMP3Node(name, parent, file, r.ReadUInt32(), childCount, firstChild);
-                        r.Jump(4);
+                        ret = new NXMP3Node(name, parent, file, nd.TypeIDData, nd.ChildCount, nd.FirstChildID);
                         break;
                     default:
-                        Util.Die(string.Format("NX node has invalid type {0}; dying", type));
-                        return null;
+                        return Util.Die<NXNode>(string.Format("NX node has invalid type {0}; dying", nd.Type));
                 }
-                r.Jump(4);
                 file._nodeById[nextId] = ret;
 
                 if (file._flags.HasFlag(NXReadSelection.EagerParseFile))
@@ -212,30 +227,40 @@ namespace reNX.NXProperties
             }
         }
 
-        /// <summary>
-        /// Returns an enumerator that iterates through the collection.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="T:System.Collections.Generic.IEnumerator`1"/> that can be used to iterate through the collection.
-        /// </returns>
-        /// <filterpriority>1</filterpriority>
-        public IEnumerator<NXNode> GetEnumerator()
+        #region Nested type: NodeData
+
+        [StructLayout(LayoutKind.Explicit)]
+        private struct NodeData
         {
-            CheckChild();
-            return _children == null ? (IEnumerator<NXNode>)new NullEnumerator<NXNode>() : _children.Values.GetEnumerator();
+            [FieldOffset(0)]
+            public uint NodeNameID;
+
+            [FieldOffset(4)]
+            public ushort ChildCount;
+
+            [FieldOffset(6)]
+            public ushort Type;
+
+            [FieldOffset(8)]
+            public int Type1Data;
+
+            [FieldOffset(8)]
+            public double Type2Data;
+
+            [FieldOffset(8)]
+            public uint TypeIDData;
+
+            [FieldOffset(8)]
+            public int Type4DataX;
+
+            [FieldOffset(12)]
+            public int Type4DataY;
+
+            [FieldOffset(16)]
+            public uint FirstChildID;
         }
 
-        /// <summary>
-        /// Returns an enumerator that iterates through a collection.
-        /// </summary>
-        /// <returns>
-        /// An <see cref="T:System.Collections.IEnumerator"/> object that can be used to iterate through the collection.
-        /// </returns>
-        /// <filterpriority>2</filterpriority>
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        #endregion
     }
 
     /// <summary>

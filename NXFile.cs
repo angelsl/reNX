@@ -42,22 +42,21 @@ namespace reNX
     /// </summary>
     public sealed class NXFile : IDisposable
     {
-        private readonly bool _disposeStream;
         internal readonly NXReadSelection _flags;
         internal readonly object _lock = new object();
-
         internal long _canvasOffset = -1;
+
         private bool _disposed;
         private Stream _file;
         private NXNode _maindir;
+        private MemoryMappedFile _mmf;
         internal long _mp3Offset = -1;
         internal NXReader _n;
-        private long _nodeStart;
         internal long _nNodeStart;
         internal NXNode[] _nodeById;
+        private long _nodeStart;
         internal NXReader _r;
         private long[] _strOffsets;
-
         private string[] _strings;
 
         /// <summary>
@@ -65,10 +64,12 @@ namespace reNX
         /// </summary>
         /// <param name="path"> The path where the NX file is located. </param>
         /// <param name="flag"> NX parsing flags. </param>
-        public NXFile(string path, NXReadSelection flag = NXReadSelection.None)
-            : this(new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 6144, FileOptions.RandomAccess), flag)
+        public unsafe NXFile(string path, NXReadSelection flag = NXReadSelection.None)
         {
-            _disposeStream = true;
+            _mmf = new MemoryMappedFile(path);
+            _flags = flag;
+            _r = new NXBytePointerReader(_mmf.Pointer);
+            Parse();
         }
 
         /// <summary>
@@ -99,10 +100,10 @@ namespace reNX
         {
             get
             {
-                if(_maindir == null) {
+                if (_maindir == null) {
                     _r.Seek(_nodeStart);
                     bool lowMem = _flags.HasFlag(NXReadSelection.LowMemory);
-                    _n = lowMem ? _r : new NXByteArrayReader(_r.ReadBytes(_nodeById.Length * 20));
+                    _n = lowMem ? _r : new NXByteArrayReader(_r.ReadBytes(_nodeById.Length*20));
                     _nNodeStart = lowMem ? _nodeStart : 0;
                     _n.Seek(_nNodeStart);
                     _maindir = NXNode.ParseNode(_n, 0, null, this);
@@ -119,12 +120,14 @@ namespace reNX
         public void Dispose()
         {
             _disposed = true;
-            if (_disposeStream) _file.Close();
+            if (_file != null) _file.Close();
             if (_n == _r) _n.Dispose();
             else {
-                if(_n != null) _n.Dispose();
+                if (_n != null) _n.Dispose();
                 _r.Dispose();
             }
+            if (_mmf != null) _mmf.Dispose();
+            _mmf = null;
             _n = null;
             _r = null;
             _file = null;
