@@ -168,7 +168,8 @@ namespace reNX
                     Util.Die("NX file has invalid header; invalid magic");
                 _nodeById = new NXNode[Util.TrueOrDie(_r.ReadUInt32(), i => i > 0, "NX file has no nodes!")];
                 _nodeStart = (long)_r.ReadUInt64();
-                _strOffsets = new long[Util.TrueOrDie(_r.ReadUInt32(), i => i > 0, "NX file has no strings!")];
+                uint numStr = Util.TrueOrDie(_r.ReadUInt32(), i => i > 0, "NX file has no strings!");
+                _strOffsets = new long[numStr];
                 _strings = new string[_strOffsets.Length];
                 ulong strStart = _r.ReadUInt64();
                 if (_r.ReadUInt32() > 0)
@@ -183,12 +184,13 @@ namespace reNX
                 if (_r is NXBytePointerReader) {
                     byte* start = _r.Pointer - _r.Position;
                     byte* ptr = _r.Pointer;
-                    for (uint i = 0; i < _strOffsets.LongLength; ++i) {
+                    for (uint i = 0; i < numStr; ++i)
+                    {
                         _strOffsets[i] = ptr - start;
                         ptr += *((ushort*)ptr) + 2;
                     }
                 } else {
-                    for (uint i = 0; i < _strOffsets.LongLength; ++i)
+                    for (uint i = 0; i < numStr; ++i)
                     {
                         long c = _r.Position;
                         _strOffsets[i] = c;

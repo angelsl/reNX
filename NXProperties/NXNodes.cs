@@ -83,14 +83,12 @@ namespace reNX.NXProperties
         /// <filterpriority>2</filterpriority>
         public void Dispose()
         {
-            try {
-                lock (_file._lock) {
-                    _loaded = false;
-                    _value.Dispose();
-                    _value = null;
-                    _gcH.Free();
-                }
-            } catch (ObjectDisposedException) {}
+            lock (_file._lock) {
+                _loaded = false;
+                if(_value != null) _value.Dispose();
+                _value = null;
+                if(_gcH.IsAllocated) _gcH.Free();
+            }
             GC.SuppressFinalize(this);
         }
 
