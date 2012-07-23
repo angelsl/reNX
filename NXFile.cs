@@ -33,6 +33,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Assembine;
 using reNX.NXProperties;
 
@@ -42,6 +43,20 @@ namespace reNX
     /// </summary>
     public sealed class NXFile : IDisposable
     {
+        [StructLayout(LayoutKind.Sequential, Pack=4)]
+        private struct HeaderData
+        {
+            public uint PKG3;
+            public uint NodeCount;
+            public long NodeBlock;
+            public uint StringCount;
+            public long StringBlock;
+            public uint BitmapCount;
+            public long BitmapBlock;
+            public uint SoundCount;
+            public long SoundBlock;
+        }
+
         internal readonly NXReadSelection _flags;
         internal readonly object _lock = new object();
         internal long _canvasOffset = -1;
@@ -81,7 +96,7 @@ namespace reNX
         {
             _file = input;
             _flags = flag;
-            _r = new NXStreamReader(_file);
+            _r = new NXStreamReader(_file, 52);
             Parse();
         }
 
@@ -164,23 +179,22 @@ namespace reNX
             //_file.Position = 0;
             _r.Seek(0);
             lock (_lock) {
-                if (_r.ReadASCIIString(4) != "PKG3")
+                _r.ReadPointer(52);
+                HeaderData hd = *((HeaderData*)_r.Pointer);
+                if (hd.PKG3!= 0x33474B50)
                     Util.Die("NX file has invalid header; invalid magic");
-                _nodeById = new NXNode[Util.TrueOrDie(_r.ReadUInt32(), i => i > 0, "NX file has no nodes!")];
-                _nodeStart = (long)_r.ReadUInt64();
-                uint numStr = Util.TrueOrDie(_r.ReadUInt32(), i => i > 0, "NX file has no strings!");
+                _nodeById = new NXNode[Util.TrueOrDie(hd.NodeCount, i => i > 0, "NX file has no nodes!")];
+                _nodeStart = hd.NodeBlock;
+                uint numStr = Util.TrueOrDie(hd.StringCount, i => i > 0, "NX file has no strings!");
                 _strOffsets = new long[numStr];
                 _strings = new string[_strOffsets.Length];
-                ulong strStart = _r.ReadUInt64();
-                if (_r.ReadUInt32() > 0)
-                    _canvasOffset = (long)_r.ReadUInt64();
-                else _r.Jump(8);
-                if (_r.ReadUInt32() > 0)
-                    _mp3Offset = (long)_r.ReadUInt64();
-                else
-                    _r.Jump(8);
+                long strStart = hd.StringBlock;
+                if (hd.BitmapCount > 0)
+                    _canvasOffset = hd.BitmapBlock;
+                if (hd.SoundBlock > 0)
+                    _mp3Offset = hd.SoundBlock;
 
-                _r.Seek((long)strStart);
+                _r.Seek(strStart);
                 if (_r is NXBytePointerReader) {
                     byte* start = _r.Pointer - _r.Position;
                     byte* ptr = _r.Pointer;
