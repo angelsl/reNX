@@ -159,7 +159,7 @@ namespace reNX
             return (path.StartsWith("/") ? path.Substring(1) : path).Split('/').Where(node => node != ".").Aggregate(BaseNode, (current, node) => node == ".." ? current.Parent : current[node]);
         }
 
-        private void Parse()
+        private unsafe void Parse()
         {
             //_file.Position = 0;
             _r.Seek(0);
@@ -180,10 +180,20 @@ namespace reNX
                     _r.Jump(8);
 
                 _r.Seek((long)strStart);
-                for (uint i = 0; i < _strOffsets.LongLength; ++i) {
-                    long c = _r.Position;
-                    _strOffsets[i] = c;
-                    _r.Seek(c + _r.ReadUInt16() + 2);
+                if (_r is NXBytePointerReader) {
+                    byte* start = _r.Pointer - _r.Position;
+                    byte* ptr = _r.Pointer;
+                    for (uint i = 0; i < _strOffsets.LongLength; ++i) {
+                        _strOffsets[i] = ptr - start;
+                        ptr += *((ushort*)ptr) + 2;
+                    }
+                } else {
+                    for (uint i = 0; i < _strOffsets.LongLength; ++i)
+                    {
+                        long c = _r.Position;
+                        _strOffsets[i] = c;
+                        _r.Seek(c + _r.ReadUInt16() + 2);
+                    }
                 }
             }
         }
