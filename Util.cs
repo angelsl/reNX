@@ -40,12 +40,7 @@ namespace reNX
 {
     internal static class Util
     {
-        internal static bool _is64Bit;
-
-        static Util()
-        {
-            _is64Bit = IntPtr.Size == 8;
-        }
+        internal static readonly bool _is64Bit = IntPtr.Size == 8;
 
         internal static T Die<T>(string cause)
         {
