@@ -48,7 +48,7 @@ namespace reNX.NXProperties
         internal NXStringNode(string name, NXNode parent, NXFile file, uint strId, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {
             _id = strId;
-            if (_file._flags.HasFlag(NXReadSelection.EagerParseStrings))
+            if (_file._flags.IsSet(NXReadSelection.EagerParseStrings))
                 CheckLoad();
         }
 
@@ -69,7 +69,7 @@ namespace reNX.NXProperties
         internal NXCanvasNode(string name, NXNode parent, NXFile file, uint id, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {
             _id = id;
-            if (_file._flags.HasFlag(NXReadSelection.EagerParseCanvas))
+            if (_file._flags.IsSet(NXReadSelection.EagerParseCanvas))
                 CheckLoad();
         }
 
@@ -99,26 +99,28 @@ namespace reNX.NXProperties
 
         protected unsafe override Bitmap LoadValue()
         {
-            if (_file._canvasOffset < 0 || _file._flags.HasFlag(NXReadSelection.NeverParseCanvas)) return null;
-            lock (_file._lock) {
-                NXBytePointerReader r = _file._fileReader;
-                r._ptr = r._start + _file._canvasOffset + _id*8;
-                r._ptr = r._start + *((ulong*)r._ptr);
-                ushort width = r.ReadUInt16();
-                ushort height = r.ReadUInt16();
-                byte[] cdata = r.ReadBytes((int)r.ReadUInt32());
-                byte[] bdata = new byte[width*height*4];
+            if (_file._canvasOffset < 0 || _file._flags.IsSet(NXReadSelection.NeverParseCanvas)) return null;
+                byte* ptr = _file._start + *((ulong*)(_file._start + _file._canvasOffset + _id * 8));
+                BitmapInfo bi = *((BitmapInfo*)ptr);
+                byte[] bdata = new byte[bi.Width*bi.Height*4];
                 _gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned);
                 IntPtr outBuf = _gcH.AddrOfPinnedObject();
 
-                GCHandle @in = GCHandle.Alloc(cdata, GCHandleType.Pinned);
+                if (Util._is64Bit) Util.EDecompressLZ464(ptr + 8, outBuf, bdata.Length);
+                else Util.EDecompressLZ432(ptr + 8, outBuf, bdata.Length);
+                return new Bitmap(bi.Width, bi.Height, 4*bi.Width, PixelFormat.Format32bppArgb, outBuf);
+            
+        }
 
-                if (Util._is64Bit) Util.EDecompressLZ464(@in.AddrOfPinnedObject(), outBuf, bdata.Length);
-                else Util.EDecompressLZ432(@in.AddrOfPinnedObject(), outBuf, bdata.Length);
-                @in.Free();
-                cdata = null;
-                return new Bitmap(width, height, 4*width, PixelFormat.Format32bppArgb, outBuf);
-            }
+        [StructLayout(LayoutKind.Explicit)]
+        private struct BitmapInfo
+        {
+            [FieldOffset(0)]
+            public ushort Width;
+            [FieldOffset(2)]
+            public ushort Height;
+            [FieldOffset(4)]
+            public uint DataLen;
         }
     }
 
@@ -132,19 +134,19 @@ namespace reNX.NXProperties
         internal NXMP3Node(string name, NXNode parent, NXFile file, uint id, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {
             _id = id;
-            if (_file._flags.HasFlag(NXReadSelection.EagerParseMP3))
+            if (_file._flags.IsSet(NXReadSelection.EagerParseMP3))
                 CheckLoad();
         }
 
         protected unsafe override byte[] LoadValue()
         {
             if (_file._mp3Offset < 0) return null;
-            lock (_file._lock) {
-                NXBytePointerReader r = _file._fileReader;
-                r._ptr = r._start + _file._mp3Offset + _id * 8;
-                r._ptr = r._start + *((ulong*)r._ptr);
-                return r.ReadBytes((int)r.ReadUInt32()); // sadly, we cannot handle a true uint sized MP3 yet. oh well
-            }
+                byte* ptr = _file._start + *((ulong*)(_file._start + _file._mp3Offset + _id * 8));
+                int len = *((int*)ptr);
+                byte[] ret = new byte[len];
+                Marshal.Copy((IntPtr)ptr, ret, 0, len);
+                return ret;
+            
         }
     }
 }

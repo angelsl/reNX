@@ -33,6 +33,7 @@
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using Assembine;
 using reNX.NXProperties;
 
@@ -40,24 +41,23 @@ namespace reNX
 {
     /// <summary>
     /// </summary>
-    public sealed class NXFile : IDisposable
+    public unsafe sealed class NXFile : IDisposable
     {
         internal readonly NXReadSelection _flags;
         internal readonly object _lock = new object();
-        private NXNode _baseNode;
-        internal long _canvasOffset = -1;
         private bool _disposed;
-        internal NXBytePointerReader _fileReader;
-        private MemoryMappedFile _memoryMappedFile;
+
+        private BytePointerObject _pointerWrapper;
+
+        private NXNode _baseNode;
+
+        internal readonly byte* _start;
 
         internal long _mp3Offset = -1;
-        internal NXNode[] _nodeById;
-        private long _nodeOffset;
-
-        internal NXBytePointerReader _nodeReader;
-        internal long _nodeReaderStart;
-
+        internal long _canvasOffset = -1;
+        internal long _nodeOffset;
         private long[] _strOffsets;
+
         private string[] _strings;
 
         /// <summary>
@@ -65,11 +65,11 @@ namespace reNX
         /// </summary>
         /// <param name="path"> The path where the NX file is located. </param>
         /// <param name="flag"> NX parsing flags. </param>
-        public unsafe NXFile(string path, NXReadSelection flag = NXReadSelection.None)
+        public NXFile(string path, NXReadSelection flag = NXReadSelection.None)
         {
-            _memoryMappedFile = new MemoryMappedFile(path);
+            _pointerWrapper = new MemoryMappedFile(path);
             _flags = flag;
-            _fileReader = new NXBytePointerReader(_memoryMappedFile.Pointer);
+            _start = _pointerWrapper.Pointer;
             Parse();
         }
 
@@ -81,27 +81,20 @@ namespace reNX
         public NXFile(byte[] input, NXReadSelection flag = NXReadSelection.None)
         {
             _flags = flag;
-            _fileReader = new NXByteArrayReader(input);
+            _pointerWrapper = new ByteArrayPointer(input);
+            _start = _pointerWrapper.Pointer;
             Parse();
         }
 
         /// <summary>
         ///   The base node of this NX file.
         /// </summary>
-        public unsafe NXNode BaseNode
+        public NXNode BaseNode
         {
             get
             {
                 if (_baseNode != null) return _baseNode;
-                lock (_lock) {
-                    if (_baseNode != null) return _baseNode;
-                    _fileReader._ptr = _fileReader._start + _nodeOffset;
-                    bool lowMem = _flags.HasFlag(NXReadSelection.LowMemory);
-                    _nodeReader = lowMem ? _fileReader : new NXByteArrayReader(_fileReader.ReadBytes(_nodeById.Length*20));
-                    _nodeReaderStart = lowMem ? _nodeOffset : 0;
-                    _nodeReader._ptr = _nodeReader._start + _nodeReaderStart;
-                    _baseNode = NXNode.ParseNode(_nodeReader, 0, null, this);
-                }
+                _baseNode = NXNode.ParseNode(_start + _nodeOffset, null, this);
                 return _baseNode;
             }
         }
@@ -114,16 +107,8 @@ namespace reNX
         public void Dispose()
         {
             _disposed = true;
-            if (_nodeReader == _fileReader) _nodeReader.Dispose();
-            else {
-                if (_nodeReader != null) _nodeReader.Dispose();
-                _fileReader.Dispose();
-            }
-            if (_memoryMappedFile != null) _memoryMappedFile.Dispose();
-            _memoryMappedFile = null;
-            _nodeReader = null;
-            _fileReader = null;
-            _nodeById = null;
+            if (_pointerWrapper != null) _pointerWrapper.Dispose();
+            _pointerWrapper = null;
             _strOffsets = null;
             _baseNode = null;
             _strings = null;
@@ -153,42 +138,38 @@ namespace reNX
 
         private unsafe void Parse()
         {
-            _fileReader._ptr = _fileReader._start;
-            lock (_lock) {
-                HeaderData hd = *((HeaderData*)_fileReader._ptr);
-                if (hd.PKG3 != 0x33474B50)
-                    Util.Die("NX file has invalid header; invalid magic");
-                _nodeById = new NXNode[Util.TrueOrDie(hd.NodeCount, i => i > 0, "NX file has no nodes!")];
-                _nodeOffset = hd.NodeBlock;
-                uint numStr = Util.TrueOrDie(hd.StringCount, i => i > 0, "NX file has no strings!");
-                _strOffsets = new long[numStr];
-                _strings = new string[_strOffsets.Length];
-                long strStart = hd.StringBlock;
-                if (hd.BitmapCount > 0)
-                    _canvasOffset = hd.BitmapBlock;
-                if (hd.SoundCount > 0)
-                    _mp3Offset = hd.SoundBlock;
+            HeaderData hd = *((HeaderData*)_start);
+            if (hd.PKG3 != 0x33474B50)
+                Util.Die("NX file has invalid header; invalid magic");
+            _nodeOffset = hd.NodeBlock;
+            uint numStr = hd.StringCount;// Util.TrueOrDie(hd.StringCount, i => i > 0, "NX file has no strings!");
+            _strOffsets = new long[numStr];
+            _strings = new string[_strOffsets.Length];
+            long strStart = hd.StringBlock;
 
-                byte* ptr = _fileReader._start + strStart;
-                for (uint i = 0; i < numStr; ++i) {
-                    _strOffsets[i] = ptr - _fileReader._start;
-                    ptr += *((ushort*)ptr) + 2;
-                }
+            if (hd.BitmapCount > 0)
+                _canvasOffset = hd.BitmapBlock;
+            if (hd.SoundCount > 0)
+                _mp3Offset = hd.SoundBlock;
+
+            byte* ptr = _start + strStart;
+            for (uint i = 0; i < numStr; ++i) {
+                _strOffsets[i] = ptr - _start;
+                ptr += *((ushort*)ptr) + 2;
             }
+            
         }
 
         internal unsafe string GetString(uint id)
         {
             if (_strings[id] != null)
                 return _strings[id];
-            lock (_lock) {
-                if (_strings[id] != null)
-                    return _strings[id];
-                _fileReader._ptr = _fileReader._start + _strOffsets[id];
-                string ret = _fileReader.ReadUInt16PrefixedUTF8String();
-                _strings[id] = ret;
-                return ret;
-            }
+            byte* ptr = _start + _strOffsets[id];
+            byte[] raw = new byte[*((ushort*)ptr)];
+            Marshal.Copy((IntPtr)(ptr + 2), raw, 0, raw.Length);
+            string ret = Encoding.UTF8.GetString(raw);
+            _strings[id] = ret;
+            return ret;
         }
 
         internal void CheckDisposed()
@@ -245,11 +226,6 @@ namespace reNX
         ///   Set this flag to completely disable loading of canvas properties. This takes precedence over EagerParseCanvas.
         /// </summary>
         NeverParseCanvas = 8,
-
-        /// <summary>
-        ///   Set this flag to disable loading all node data into memory.
-        /// </summary>
-        LowMemory = 16,
 
         /// <summary>
         ///   Set this flag to disable lazy loading of nodes (construct all nodes immediately).

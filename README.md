@@ -1,5 +1,5 @@
 # reNX
-...is a simple and clean .NET library for reading, modifying, writing and creating NX files.
+...is a simple and clean .NET library for reading NX files.
 
 It, along with [NoLifeNX](https://github.com/NoLifeDev/NoLifeNx) and [WZ2NX](https://github.com/angelsl/ms-wz2nx), is the reference implementation of the NX format.
 

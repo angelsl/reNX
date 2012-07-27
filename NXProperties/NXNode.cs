@@ -108,7 +108,9 @@ namespace reNX.NXProperties
         /// <param name="name"> The name of the child to get. </param>
         /// <returns> The child with the specified name. </returns>
         /// <exception cref="ObjectDisposedException">Thrown if this property is accessed after the containing file is disposed.</exception>
-        /// <exception cref="KeyNotFoundException">The node does not contain a child with name <paramref name="name"/>.</exception>
+        /// <exception cref="KeyNotFoundException">The node does not contain a child with name
+        ///   <paramref name="name" />
+        ///   .</exception>
         public NXNode this[string name]
         {
             get
@@ -176,56 +178,47 @@ namespace reNX.NXProperties
         private unsafe void CheckChild()
         {
             if (_children != null || _childCount < 1) return;
-            lock (_file._lock) {
-                if (_children != null) return;
-                _children = new Dictionary<string, NXNode>(_childCount);
-                uint nId = _firstChild;
-                NXBytePointerReader nbpr = _file._nodeReader;
-                for (ushort i = 0; i < _childCount; ++i) {
-                    nbpr._ptr = nbpr._start + nId*20 + _file._nodeReaderStart;
-                    AddChild(ParseNode(nbpr, nId++, this, _file));
-                }
-            }
+            _children = new Dictionary<string, NXNode>(_childCount);
+            byte* start = _file._start + _file._nodeOffset + _firstChild*20;
+            for (ushort i = 0; i < _childCount; ++i, start += 20)
+                AddChild(ParseNode(start, this, _file));
         }
 
-        internal static unsafe NXNode ParseNode(NXBytePointerReader r, uint nextId, NXNode parent, NXFile file)
+        internal static unsafe NXNode ParseNode(byte* ptr, NXNode parent, NXFile file)
         {
-            lock (file._lock) {
-                NodeData nd = *((NodeData*)r._ptr);
-                string name = file.GetString(nd.NodeNameID);
-                NXNode ret;
-                switch (nd.Type) {
-                    case 0:
-                        ret = new NXNode(name, parent, file, nd.ChildCount, nd.FirstChildID);
-                        break;
-                    case 1:
-                        ret = new NXValuedNode<int>(name, parent, file, nd.Type1Data, nd.ChildCount, nd.FirstChildID);
-                        break;
-                    case 2:
-                        ret = new NXValuedNode<double>(name, parent, file, nd.Type2Data, nd.ChildCount, nd.FirstChildID);
-                        break;
-                    case 3:
-                        ret = new NXStringNode(name, parent, file, nd.TypeIDData, nd.ChildCount, nd.FirstChildID);
-                        break;
-                    case 4:
-                        ret = new NXValuedNode<Point>(name, parent, file, new Point(nd.Type4DataX, nd.Type4DataY), nd.ChildCount, nd.FirstChildID);
-                        break;
-                    case 5:
-                        ret = new NXCanvasNode(name, parent, file, nd.TypeIDData, nd.ChildCount, nd.FirstChildID);
-                        break;
-                    case 6:
-                        ret = new NXMP3Node(name, parent, file, nd.TypeIDData, nd.ChildCount, nd.FirstChildID);
-                        break;
-                    default:
-                        return Util.Die<NXNode>(string.Format("NX node has invalid type {0}; dying", nd.Type));
-                }
-                file._nodeById[nextId] = ret;
-
-                if (file._flags.HasFlag(NXReadSelection.EagerParseFile))
-                    ret.CheckChild();
-
-                return ret;
+            NodeData nd = *((NodeData*)ptr);
+            string name = file.GetString(nd.NodeNameID);
+            NXNode ret;
+            switch (nd.Type) {
+                case 0:
+                    ret = new NXNode(name, parent, file, nd.ChildCount, nd.FirstChildID);
+                    break;
+                case 1:
+                    ret = new NXValuedNode<int>(name, parent, file, nd.Type1Data, nd.ChildCount, nd.FirstChildID);
+                    break;
+                case 2:
+                    ret = new NXValuedNode<double>(name, parent, file, nd.Type2Data, nd.ChildCount, nd.FirstChildID);
+                    break;
+                case 3:
+                    ret = new NXStringNode(name, parent, file, nd.TypeIDData, nd.ChildCount, nd.FirstChildID);
+                    break;
+                case 4:
+                    ret = new NXValuedNode<Point>(name, parent, file, new Point(nd.Type1Data, nd.Type4DataY), nd.ChildCount, nd.FirstChildID);
+                    break;
+                case 5:
+                    ret = new NXCanvasNode(name, parent, file, nd.TypeIDData, nd.ChildCount, nd.FirstChildID);
+                    break;
+                case 6:
+                    ret = new NXMP3Node(name, parent, file, nd.TypeIDData, nd.ChildCount, nd.FirstChildID);
+                    break;
+                default:
+                    return Util.Die<NXNode>(string.Format("NX node has invalid type {0}; dying", nd.Type));
             }
+
+            if (file._flags.IsSet(NXReadSelection.EagerParseFile))
+                ret.CheckChild();
+
+            return ret;
         }
 
         #region Nested type: NodeData
@@ -250,9 +243,6 @@ namespace reNX.NXProperties
 
             [FieldOffset(8)]
             public uint TypeIDData;
-
-            [FieldOffset(8)]
-            public int Type4DataX;
 
             [FieldOffset(12)]
             public int Type4DataY;

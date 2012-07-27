@@ -57,7 +57,7 @@ namespace reNX
             return verifier(value) ? value : Die<T>(deathCause);
         }
 
-        internal static bool HasFlag(this NXReadSelection tnrs, NXReadSelection nrs)
+        internal static bool IsSet(this NXReadSelection tnrs, NXReadSelection nrs)
         {
             return ((tnrs & nrs) == nrs);
         }
@@ -79,10 +79,10 @@ namespace reNX
         internal static extern bool UnmapViewOfFile(IntPtr lpBaseAddress);
 
         [DllImport("lz4_32.dll", EntryPoint = "LZ4_uncompress")]
-        internal static extern int EDecompressLZ432(IntPtr source, IntPtr dest, int outputLen);
+        internal static extern unsafe int EDecompressLZ432(byte* source, IntPtr dest, int outputLen);
 
         [DllImport("lz4_64.dll", EntryPoint = "LZ4_uncompress")]
-        internal static extern int EDecompressLZ464(IntPtr source, IntPtr dest, int outputLen);
+        internal static extern unsafe int EDecompressLZ464(byte* source, IntPtr dest, int outputLen);
 
         #region Nested type: FileMapAccess
 
@@ -117,7 +117,41 @@ namespace reNX
         #endregion
     }
 
-    internal unsafe class MemoryMappedFile : IDisposable
+    internal unsafe interface BytePointerObject : IDisposable
+    {
+        byte* Pointer { get; }
+    }
+
+    internal unsafe class ByteArrayPointer : BytePointerObject
+    {
+        private bool _disposed;
+        private GCHandle _gcH;
+        private byte[] _array;
+        private byte* _start;
+
+        internal ByteArrayPointer(byte[] array)
+        {
+            _array = array;
+            _gcH = GCHandle.Alloc(_array, GCHandleType.Pinned);
+            _start = (byte*)_gcH.AddrOfPinnedObject();
+        }
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        /// <filterpriority>2</filterpriority>
+        public void Dispose()
+        {
+            if (_disposed) throw new ObjectDisposedException("Memory mapped file");
+            _disposed = true;
+            _gcH.Free();
+            _array = null;
+        }
+
+        public byte* Pointer { get { if (_disposed) throw new ObjectDisposedException("Memory mapped file"); return _start; } }
+    }
+
+    internal unsafe class MemoryMappedFile : BytePointerObject
     {
         private bool _disposed;
         private IntPtr _fmap;
@@ -136,7 +170,7 @@ namespace reNX
             _start = (byte*)_fview.ToPointer();
         }
 
-        internal byte* Pointer
+        public byte* Pointer
         {
             get
             {
