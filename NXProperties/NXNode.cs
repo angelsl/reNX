@@ -108,13 +108,14 @@ namespace reNX.NXProperties
         /// <param name="name"> The name of the child to get. </param>
         /// <returns> The child with the specified name. </returns>
         /// <exception cref="ObjectDisposedException">Thrown if this property is accessed after the containing file is disposed.</exception>
+        /// <exception cref="KeyNotFoundException">The node does not contain a child with name <paramref name="name"/>.</exception>
         public NXNode this[string name]
         {
             get
             {
                 _file.CheckDisposed();
-                CheckChild();
-                return _children == null || !_children.ContainsKey(name) ? null : _children[name];
+                if (_childCount > 0 && _children == null) CheckChild();
+                return _children == null ? null : _children[name];
             }
         }
 
@@ -127,7 +128,7 @@ namespace reNX.NXProperties
         /// <filterpriority>1</filterpriority>
         public IEnumerator<NXNode> GetEnumerator()
         {
-            CheckChild();
+            if (_childCount > 0 && _children == null) CheckChild();
             return _children == null ? (IEnumerator<NXNode>)new NullEnumerator<NXNode>() : _children.Values.GetEnumerator();
         }
 
@@ -152,7 +153,7 @@ namespace reNX.NXProperties
         public bool ContainsChild(string name)
         {
             _file.CheckDisposed();
-            CheckChild();
+            if (_childCount > 0 && _children == null) CheckChild();
             return _children != null && _children.ContainsKey(name);
         }
 
@@ -176,6 +177,7 @@ namespace reNX.NXProperties
         {
             if (_children != null || _childCount < 1) return;
             lock (_file._lock) {
+                if (_children != null) return;
                 _children = new Dictionary<string, NXNode>(_childCount);
                 uint nId = _firstChild;
                 NXBytePointerReader nbpr = _file._nodeReader;
