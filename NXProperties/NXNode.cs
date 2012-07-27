@@ -179,16 +179,15 @@ namespace reNX.NXProperties
                 _children = new Dictionary<string, NXNode>(_childCount);
                 uint nId = _firstChild;
                 for (ushort i = 0; i < _childCount; ++i) {
-                    _file._n.Seek(nId*20 + _file._nNodeStart);
-                    AddChild(ParseNode(_file._n, nId++, this, _file));
+                    _file._nodeReader.Seek(nId*20 + _file._nodeReaderStart);
+                    AddChild(ParseNode(_file._nodeReader, nId++, this, _file));
                 }
             }
         }
 
-        internal static unsafe NXNode ParseNode(NXReader r, uint nextId, NXNode parent, NXFile file)
+        internal static unsafe NXNode ParseNode(NXBytePointerReader r, uint nextId, NXNode parent, NXFile file)
         {
             lock (file._lock) {
-                r.ReadPointer(20);
                 NodeData nd = *((NodeData*)r.Pointer);
                 r.Jump(20);
                 string name = file.GetString(nd.NodeNameID);

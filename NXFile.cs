@@ -31,7 +31,6 @@
 // do so, delete this exception statement from your version.
 
 using System;
-using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Assembine;
@@ -43,68 +42,47 @@ namespace reNX
     /// </summary>
     public sealed class NXFile : IDisposable
     {
-        [StructLayout(LayoutKind.Sequential, Pack=4)]
-        private struct HeaderData
-        {
-            public uint PKG3;
-            public uint NodeCount;
-            public long NodeBlock;
-            public uint StringCount;
-            public long StringBlock;
-            public uint BitmapCount;
-            public long BitmapBlock;
-            public uint SoundCount;
-            public long SoundBlock;
-        }
-
         internal readonly NXReadSelection _flags;
         internal readonly object _lock = new object();
-        internal long _canvasOffset = -1;
+        private bool _disposed;        
 
-        private bool _disposed;
-        private Stream _file;
-        private NXNode _maindir;
-        private MemoryMappedFile _mmf;
         internal long _mp3Offset = -1;
-        internal NXReader _n;
-        internal long _nNodeStart;
+        internal long _canvasOffset = -1;
+        private long _nodeOffset;
+        internal long _nodeReaderStart;
+
+        private NXNode _baseNode;
         internal NXNode[] _nodeById;
-        private long _nodeStart;
-        internal NXReader _r;
+
+        private MemoryMappedFile _memoryMappedFile;
+        internal NXBytePointerReader _fileReader;
+        internal NXBytePointerReader _nodeReader;
+
         private long[] _strOffsets;
         private string[] _strings;
 
         /// <summary>
-        ///   Creates and loads a NX file from a path. The Stream created will be disposed when the NX file is disposed.
+        ///   Creates and loads a NX file from a path.
         /// </summary>
         /// <param name="path"> The path where the NX file is located. </param>
         /// <param name="flag"> NX parsing flags. </param>
         public unsafe NXFile(string path, NXReadSelection flag = NXReadSelection.None)
         {
-            _mmf = new MemoryMappedFile(path);
+            _memoryMappedFile = new MemoryMappedFile(path);
             _flags = flag;
-            _r = new NXBytePointerReader(_mmf.Pointer);
+            _fileReader = new NXBytePointerReader(_memoryMappedFile.Pointer);
             Parse();
         }
 
         /// <summary>
-        ///   Creates and loads a NX file. The Stream passed will not be closed when the NX file is disposed. Disposal of the stream should be handled by the caller.
+        /// Creates and loads a NX file from a byte array.
         /// </summary>
-        /// <param name="input"> The stream containing the NX file. </param>
-        /// <param name="flag"> NX parsing flags. </param>
-        public NXFile(Stream input, NXReadSelection flag = NXReadSelection.None)
-        {
-            _file = input;
-            _flags = flag;
-            _r = new NXStreamReader(_file, 52);
-            Parse();
-        }
-
+        /// <param name="input">The byte array containing the NX file.</param>
+        /// <param name="flag">NX parsing flags.</param>
         public NXFile(byte[] input, NXReadSelection flag = NXReadSelection.None)
         {
-            _file = null;
             _flags = flag;
-            _r = new NXByteArrayReader(input);
+            _fileReader = new NXByteArrayReader(input);
             Parse();
         }
 
@@ -115,15 +93,17 @@ namespace reNX
         {
             get
             {
-                if (_maindir == null) {
-                    _r.Seek(_nodeStart);
+                if (_baseNode != null) return _baseNode;
+                lock(_lock) {
+                    if (_baseNode != null) return _baseNode;
+                    _fileReader.Seek(_nodeOffset);
                     bool lowMem = _flags.HasFlag(NXReadSelection.LowMemory);
-                    _n = lowMem ? _r : new NXByteArrayReader(_r.ReadBytes(_nodeById.Length*20));
-                    _nNodeStart = lowMem ? _nodeStart : 0;
-                    _n.Seek(_nNodeStart);
-                    _maindir = NXNode.ParseNode(_n, 0, null, this);
+                    _nodeReader = lowMem ? _fileReader : new NXByteArrayReader(_fileReader.ReadBytes(_nodeById.Length*20));
+                    _nodeReaderStart = lowMem ? _nodeOffset : 0;
+                    _nodeReader.Seek(_nodeReaderStart);
+                    _baseNode = NXNode.ParseNode(_nodeReader, 0, null, this);
                 }
-                return _maindir;
+                return _baseNode;
             }
         }
 
@@ -135,20 +115,18 @@ namespace reNX
         public void Dispose()
         {
             _disposed = true;
-            if (_file != null) _file.Close();
-            if (_n == _r) _n.Dispose();
+            if (_nodeReader == _fileReader) _nodeReader.Dispose();
             else {
-                if (_n != null) _n.Dispose();
-                _r.Dispose();
+                if (_nodeReader != null) _nodeReader.Dispose();
+                _fileReader.Dispose();
             }
-            if (_mmf != null) _mmf.Dispose();
-            _mmf = null;
-            _n = null;
-            _r = null;
-            _file = null;
+            if (_memoryMappedFile != null) _memoryMappedFile.Dispose();
+            _memoryMappedFile = null;
+            _nodeReader = null;
+            _fileReader = null;
             _nodeById = null;
             _strOffsets = null;
-            _maindir = null;
+            _baseNode = null;
             _strings = null;
             GC.SuppressFinalize(this);
         }
@@ -176,40 +154,29 @@ namespace reNX
 
         private unsafe void Parse()
         {
-            //_file.Position = 0;
-            _r.Seek(0);
+            _fileReader.Seek(0);
             lock (_lock) {
-                _r.ReadPointer(52);
-                HeaderData hd = *((HeaderData*)_r.Pointer);
-                if (hd.PKG3!= 0x33474B50)
+                _fileReader.ReadPointer(52);
+                HeaderData hd = *((HeaderData*)_fileReader.Pointer);
+                if (hd.PKG3 != 0x33474B50)
                     Util.Die("NX file has invalid header; invalid magic");
                 _nodeById = new NXNode[Util.TrueOrDie(hd.NodeCount, i => i > 0, "NX file has no nodes!")];
-                _nodeStart = hd.NodeBlock;
+                _nodeOffset = hd.NodeBlock;
                 uint numStr = Util.TrueOrDie(hd.StringCount, i => i > 0, "NX file has no strings!");
                 _strOffsets = new long[numStr];
                 _strings = new string[_strOffsets.Length];
                 long strStart = hd.StringBlock;
                 if (hd.BitmapCount > 0)
                     _canvasOffset = hd.BitmapBlock;
-                if (hd.SoundBlock > 0)
+                if (hd.SoundCount > 0)
                     _mp3Offset = hd.SoundBlock;
 
-                _r.Seek(strStart);
-                if (_r is NXBytePointerReader) {
-                    byte* start = _r.Pointer - _r.Position;
-                    byte* ptr = _r.Pointer;
-                    for (uint i = 0; i < numStr; ++i)
-                    {
-                        _strOffsets[i] = ptr - start;
-                        ptr += *((ushort*)ptr) + 2;
-                    }
-                } else {
-                    for (uint i = 0; i < numStr; ++i)
-                    {
-                        long c = _r.Position;
-                        _strOffsets[i] = c;
-                        _r.Seek(c + _r.ReadUInt16() + 2);
-                    }
+                _fileReader.Seek(strStart);
+                byte* start = _fileReader.Pointer - _fileReader.Position;
+                byte* ptr = _fileReader.Pointer;
+                for (uint i = 0; i < numStr; ++i) {
+                    _strOffsets[i] = ptr - start;
+                    ptr += *((ushort*)ptr) + 2;
                 }
             }
         }
@@ -221,11 +188,11 @@ namespace reNX
             lock (_lock) {
                 if (_strings[id] != null)
                     return _strings[id];
-                long orig = _r.Position;
-                _r.Seek(_strOffsets[id]);
-                string ret = _r.ReadUInt16PrefixedUTF8String();
+                long orig = _fileReader.Position;
+                _fileReader.Seek(_strOffsets[id]);
+                string ret = _fileReader.ReadUInt16PrefixedUTF8String();
                 _strings[id] = ret;
-                _r.Seek(orig);
+                _fileReader.Seek(orig);
                 return ret;
             }
         }
@@ -234,6 +201,24 @@ namespace reNX
         {
             if (_disposed) throw new ObjectDisposedException("NX file");
         }
+
+        #region Nested type: HeaderData
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        private struct HeaderData
+        {
+            public uint PKG3;
+            public uint NodeCount;
+            public long NodeBlock;
+            public uint StringCount;
+            public long StringBlock;
+            public uint BitmapCount;
+            public long BitmapBlock;
+            public uint SoundCount;
+            public long SoundBlock;
+        }
+
+        #endregion
     }
 
     /// <summary>

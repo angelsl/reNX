@@ -65,7 +65,7 @@ namespace reNX.NXProperties
     public sealed class NXCanvasNode : NXLazyValuedNode<Bitmap>, IDisposable
     {
         private GCHandle _gcH;
-        private uint _id;
+        private readonly uint _id;
 
         internal NXCanvasNode(string name, NXNode parent, NXFile file, uint id, ushort childCount, uint firstChildId)
             : base(name, parent, file, childCount, firstChildId)
@@ -103,7 +103,7 @@ namespace reNX.NXProperties
         {
             if (_file._canvasOffset < 0 || _file._flags.HasFlag(NXReadSelection.NeverParseCanvas)) return null;
             lock (_file._lock) {
-                NXReader r = _file._r;
+                NXReader r = _file._fileReader;
                 r.Seek(_file._canvasOffset + _id*8);
                 r.Seek((long)r.ReadUInt64());
                 ushort width = r.ReadUInt16();
@@ -128,7 +128,7 @@ namespace reNX.NXProperties
     /// </summary>
     public sealed class NXMP3Node : NXLazyValuedNode<byte[]>
     {
-        private uint _id;
+        private readonly uint _id;
 
         internal NXMP3Node(string name, NXNode parent, NXFile file, uint id, ushort childCount, uint firstChildId)
             : base(name, parent, file, childCount, firstChildId)
@@ -142,7 +142,7 @@ namespace reNX.NXProperties
         {
             if (_file._mp3Offset < 0) return null;
             lock (_file._lock) {
-                NXReader r = _file._r;
+                NXReader r = _file._fileReader;
                 r.Seek(_file._mp3Offset + _id*8);
                 r.Seek((long)r.ReadUInt64());
                 return r.ReadBytes((int)r.ReadUInt32()); // sadly, we cannot handle a true uint sized MP3 yet. oh well
