@@ -179,14 +179,14 @@ namespace reNX.NXProperties
         {
             if (_children != null || _childCount < 1) return;
             _children = new Dictionary<string, NXNode>(_childCount);
-            byte* start = _file._start + _file._nodeOffset + _firstChild*20;
-            for (ushort i = 0; i < _childCount; ++i, start += 20)
+            NodeData* start = (NodeData*)(_file._start + _file._nodeOffset + _firstChild*20);
+            for (ushort i = 0; i < _childCount; ++i, ++start)
                 AddChild(ParseNode(start, this, _file));
         }
 
-        internal static unsafe NXNode ParseNode(byte* ptr, NXNode parent, NXFile file)
+        internal static unsafe NXNode ParseNode(NodeData* ptr, NXNode parent, NXFile file)
         {
-            NodeData nd = *((NodeData*)ptr);
+            NodeData nd = *ptr;
             string name = file.GetString(nd.NodeNameID);
             NXNode ret;
             switch (nd.Type) {
@@ -223,8 +223,8 @@ namespace reNX.NXProperties
 
         #region Nested type: NodeData
 
-        [StructLayout(LayoutKind.Explicit)]
-        private struct NodeData
+        [StructLayout(LayoutKind.Explicit, Size=20)]
+        internal struct NodeData
         {
             [FieldOffset(0)]
             public uint NodeNameID;

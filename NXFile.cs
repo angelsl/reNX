@@ -34,7 +34,6 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using Assembine;
 using reNX.NXProperties;
 
 namespace reNX
@@ -94,7 +93,7 @@ namespace reNX
             get
             {
                 if (_baseNode != null) return _baseNode;
-                _baseNode = NXNode.ParseNode(_start + _nodeOffset, null, this);
+                _baseNode = NXNode.ParseNode((NXNode.NodeData*)(_start + _nodeOffset), null, this);
                 return _baseNode;
             }
         }

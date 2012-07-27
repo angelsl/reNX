@@ -56,7 +56,6 @@
     <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assembine\BinaryReader.cs" />
     <Compile Include="Assembine\NullEnumerator.cs" />
     <Compile Include="NXFile.cs" />
     <Compile Include="NXProperties\NXNode.cs" />

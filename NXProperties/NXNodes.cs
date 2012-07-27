@@ -34,7 +34,6 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
-using Assembine;
 
 namespace reNX.NXProperties
 {
