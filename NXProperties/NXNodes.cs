@@ -97,13 +97,13 @@ namespace reNX.NXProperties
             Dispose();
         }
 
-        protected override Bitmap LoadValue()
+        protected unsafe override Bitmap LoadValue()
         {
             if (_file._canvasOffset < 0 || _file._flags.HasFlag(NXReadSelection.NeverParseCanvas)) return null;
             lock (_file._lock) {
-                NXReader r = _file._fileReader;
-                r.Seek(_file._canvasOffset + _id*8);
-                r.Seek((long)r.ReadUInt64());
+                NXBytePointerReader r = _file._fileReader;
+                r._ptr = r._start + _file._canvasOffset + _id*8;
+                r._ptr = r._start + *((ulong*)r._ptr);
                 ushort width = r.ReadUInt16();
                 ushort height = r.ReadUInt16();
                 byte[] cdata = r.ReadBytes((int)r.ReadUInt32());
@@ -136,13 +136,13 @@ namespace reNX.NXProperties
                 CheckLoad();
         }
 
-        protected override byte[] LoadValue()
+        protected unsafe override byte[] LoadValue()
         {
             if (_file._mp3Offset < 0) return null;
             lock (_file._lock) {
-                NXReader r = _file._fileReader;
-                r.Seek(_file._mp3Offset + _id*8);
-                r.Seek((long)r.ReadUInt64());
+                NXBytePointerReader r = _file._fileReader;
+                r._ptr = r._start + _file._mp3Offset + _id * 8;
+                r._ptr = r._start + *((ulong*)r._ptr);
                 return r.ReadBytes((int)r.ReadUInt32()); // sadly, we cannot handle a true uint sized MP3 yet. oh well
             }
         }

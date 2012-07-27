@@ -88,18 +88,18 @@ namespace reNX
         /// <summary>
         ///   The base node of this NX file.
         /// </summary>
-        public NXNode BaseNode
+        public unsafe NXNode BaseNode
         {
             get
             {
                 if (_baseNode != null) return _baseNode;
                 lock (_lock) {
                     if (_baseNode != null) return _baseNode;
-                    _fileReader.Seek(_nodeOffset);
+                    _fileReader._ptr = _fileReader._start + _nodeOffset;
                     bool lowMem = _flags.HasFlag(NXReadSelection.LowMemory);
                     _nodeReader = lowMem ? _fileReader : new NXByteArrayReader(_fileReader.ReadBytes(_nodeById.Length*20));
                     _nodeReaderStart = lowMem ? _nodeOffset : 0;
-                    _nodeReader.Seek(_nodeReaderStart);
+                    _nodeReader._ptr = _nodeReader._start + _nodeReaderStart;
                     _baseNode = NXNode.ParseNode(_nodeReader, 0, null, this);
                 }
                 return _baseNode;
@@ -153,10 +153,9 @@ namespace reNX
 
         private unsafe void Parse()
         {
-            _fileReader.Seek(0);
+            _fileReader._ptr = _fileReader._start;
             lock (_lock) {
-                _fileReader.ReadPointer(52);
-                HeaderData hd = *((HeaderData*)_fileReader.Pointer);
+                HeaderData hd = *((HeaderData*)_fileReader._ptr);
                 if (hd.PKG3 != 0x33474B50)
                     Util.Die("NX file has invalid header; invalid magic");
                 _nodeById = new NXNode[Util.TrueOrDie(hd.NodeCount, i => i > 0, "NX file has no nodes!")];
@@ -170,28 +169,24 @@ namespace reNX
                 if (hd.SoundCount > 0)
                     _mp3Offset = hd.SoundBlock;
 
-                _fileReader.Seek(strStart);
-                byte* start = _fileReader.Pointer - _fileReader.Position;
-                byte* ptr = _fileReader.Pointer;
+                byte* ptr = _fileReader._start + strStart;
                 for (uint i = 0; i < numStr; ++i) {
-                    _strOffsets[i] = ptr - start;
+                    _strOffsets[i] = ptr - _fileReader._start;
                     ptr += *((ushort*)ptr) + 2;
                 }
             }
         }
 
-        internal string GetString(uint id)
+        internal unsafe string GetString(uint id)
         {
             if (_strings[id] != null)
                 return _strings[id];
             lock (_lock) {
                 if (_strings[id] != null)
                     return _strings[id];
-                long orig = _fileReader.Position;
-                _fileReader.Seek(_strOffsets[id]);
+                _fileReader._ptr = _fileReader._start + _strOffsets[id];
                 string ret = _fileReader.ReadUInt16PrefixedUTF8String();
                 _strings[id] = ret;
-                _fileReader.Seek(orig);
                 return ret;
             }
         }

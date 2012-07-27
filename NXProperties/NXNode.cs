@@ -172,15 +172,16 @@ namespace reNX.NXProperties
             _children.Add(child.Name, child);
         }
 
-        private void CheckChild()
+        private unsafe void CheckChild()
         {
             if (_children != null || _childCount < 1) return;
             lock (_file._lock) {
                 _children = new Dictionary<string, NXNode>(_childCount);
                 uint nId = _firstChild;
+                NXBytePointerReader nbpr = _file._nodeReader;
                 for (ushort i = 0; i < _childCount; ++i) {
-                    _file._nodeReader.Seek(nId*20 + _file._nodeReaderStart);
-                    AddChild(ParseNode(_file._nodeReader, nId++, this, _file));
+                    nbpr._ptr = nbpr._start + nId*20 + _file._nodeReaderStart;
+                    AddChild(ParseNode(nbpr, nId++, this, _file));
                 }
             }
         }
@@ -188,8 +189,7 @@ namespace reNX.NXProperties
         internal static unsafe NXNode ParseNode(NXBytePointerReader r, uint nextId, NXNode parent, NXFile file)
         {
             lock (file._lock) {
-                NodeData nd = *((NodeData*)r.Pointer);
-                r.Jump(20);
+                NodeData nd = *((NodeData*)r._ptr);
                 string name = file.GetString(nd.NodeNameID);
                 NXNode ret;
                 switch (nd.Type) {
