@@ -270,12 +270,10 @@ namespace reNX.NXProperties
     {
         protected T _value;
 
-        protected NXValuedNode(string name, NXNode parent, NXFile file, ushort childCount, uint firstChildId)
-            : base(name, parent, file, childCount, firstChildId)
+        protected NXValuedNode(string name, NXNode parent, NXFile file, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {}
 
-        internal NXValuedNode(string name, NXNode parent, NXFile file, T value, ushort childCount, uint firstChildId)
-            : base(name, parent, file, childCount, firstChildId)
+        internal NXValuedNode(string name, NXNode parent, NXFile file, T value, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {
             _value = value;
         }
@@ -301,8 +299,7 @@ namespace reNX.NXProperties
     {
         protected bool _loaded;
 
-        protected NXLazyValuedNode(string name, NXNode parent, NXFile file, ushort childCount, uint firstChildId)
-            : base(name, parent, file, childCount, firstChildId)
+        protected NXLazyValuedNode(string name, NXNode parent, NXFile file, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {}
 
         /// <summary>

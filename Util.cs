@@ -40,6 +40,13 @@ namespace reNX
 {
     internal static class Util
     {
+        internal static bool _is64Bit;
+
+        static Util()
+        {
+            _is64Bit = IntPtr.Size == 8;
+        }
+
         internal static T Die<T>(string cause)
         {
             throw new NXException(cause);
@@ -61,23 +68,42 @@ namespace reNX
         }
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        internal static extern SafeFileHandle CreateFile(
-            string lpFileName,
-            [MarshalAs(UnmanagedType.U4)] FileAccess dwDesiredAccess,
-            [MarshalAs(UnmanagedType.U4)] FileShare dwShareMode,
-            IntPtr lpSecurityAttributes,
-            [MarshalAs(UnmanagedType.U4)] FileMode dwCreationDisposition,
-            [MarshalAs(UnmanagedType.U4)] FileAttributes dwFlagsAndAttributes,
-            IntPtr hTemplateFile);
+        internal static extern SafeFileHandle CreateFile(string lpFileName, [MarshalAs(UnmanagedType.U4)] FileAccess dwDesiredAccess, [MarshalAs(UnmanagedType.U4)] FileShare dwShareMode, IntPtr lpSecurityAttributes, [MarshalAs(UnmanagedType.U4)] FileMode dwCreationDisposition, [MarshalAs(UnmanagedType.U4)] FileAttributes dwFlagsAndAttributes, IntPtr hTemplateFile);
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        internal static extern IntPtr CreateFileMapping(
-            SafeFileHandle hFile,
-            IntPtr lpFileMappingAttributes,
-            FileMapProtection flProtect,
-            uint dwMaximumSizeHigh,
-            uint dwMaximumSizeLow,
-            [MarshalAs(UnmanagedType.LPTStr)] string lpName);
+        internal static extern IntPtr CreateFileMapping(SafeFileHandle hFile, IntPtr lpFileMappingAttributes, FileMapProtection flProtect, uint dwMaximumSizeHigh, uint dwMaximumSizeLow, [MarshalAs(UnmanagedType.LPTStr)] string lpName);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        internal static extern IntPtr MapViewOfFile(IntPtr hFileMappingObject, FileMapAccess dwDesiredAccess, uint dwFileOffsetHigh, uint dwFileOffsetLow, uint dwNumberOfBytesToMap);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool CloseHandle(IntPtr hObject);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        internal static extern bool UnmapViewOfFile(IntPtr lpBaseAddress);
+
+        [DllImport("lz4_32.dll", EntryPoint = "LZ4_uncompress")]
+        internal static extern int EDecompressLZ432(IntPtr source, IntPtr dest, int outputLen);
+
+        [DllImport("lz4_64.dll", EntryPoint = "LZ4_uncompress")]
+        internal static extern int EDecompressLZ464(IntPtr source, IntPtr dest, int outputLen);
+
+        #region Nested type: FileMapAccess
+
+        [Flags]
+        internal enum FileMapAccess : uint
+        {
+            FileMapCopy = 0x0001,
+            FileMapWrite = 0x0002,
+            FileMapRead = 0x0004,
+            FileMapAllAccess = 0x001f,
+            FileMapExecute = 0x0020,
+        }
+
+        #endregion
+
+        #region Nested type: FileMapProtection
 
         [Flags]
         internal enum FileMapProtection : uint
@@ -93,40 +119,7 @@ namespace reNX
             SectionReserve = 0x4000000,
         }
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        internal static extern IntPtr MapViewOfFile(
-            IntPtr hFileMappingObject,
-            FileMapAccess dwDesiredAccess,
-            uint dwFileOffsetHigh,
-            uint dwFileOffsetLow,
-            uint dwNumberOfBytesToMap);
-
-        [Flags]
-        internal enum FileMapAccess : uint
-        {
-            FileMapCopy = 0x0001,
-            FileMapWrite = 0x0002,
-            FileMapRead = 0x0004,
-            FileMapAllAccess = 0x001f,
-            FileMapExecute = 0x0020,
-        }
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool CloseHandle(IntPtr hObject);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        internal static extern bool UnmapViewOfFile(IntPtr lpBaseAddress);
-
-#if WIN32
-        [DllImport("lz4_32.dll", EntryPoint = "LZ4_uncompress")]
-        internal static extern int EDecompressLZ4(IntPtr source, IntPtr dest, int outputLen);
-#elif WIN64
-        [DllImport("lz4_64.dll", EntryPoint = "LZ4_uncompress")]
-        internal static extern int EDecompressLZ4(IntPtr source, IntPtr dest, int outputLen);
-#else
-#error No architecture selected!
-#endif
+        #endregion
     }
 
     internal unsafe class MemoryMappedFile : IDisposable

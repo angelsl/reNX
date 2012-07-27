@@ -44,19 +44,18 @@ namespace reNX
     {
         internal readonly NXReadSelection _flags;
         internal readonly object _lock = new object();
-        private bool _disposed;        
+        private NXNode _baseNode;
+        internal long _canvasOffset = -1;
+        private bool _disposed;
+        internal NXBytePointerReader _fileReader;
+        private MemoryMappedFile _memoryMappedFile;
 
         internal long _mp3Offset = -1;
-        internal long _canvasOffset = -1;
-        private long _nodeOffset;
-        internal long _nodeReaderStart;
-
-        private NXNode _baseNode;
         internal NXNode[] _nodeById;
+        private long _nodeOffset;
 
-        private MemoryMappedFile _memoryMappedFile;
-        internal NXBytePointerReader _fileReader;
         internal NXBytePointerReader _nodeReader;
+        internal long _nodeReaderStart;
 
         private long[] _strOffsets;
         private string[] _strings;
@@ -75,10 +74,10 @@ namespace reNX
         }
 
         /// <summary>
-        /// Creates and loads a NX file from a byte array.
+        ///   Creates and loads a NX file from a byte array.
         /// </summary>
-        /// <param name="input">The byte array containing the NX file.</param>
-        /// <param name="flag">NX parsing flags.</param>
+        /// <param name="input"> The byte array containing the NX file. </param>
+        /// <param name="flag"> NX parsing flags. </param>
         public NXFile(byte[] input, NXReadSelection flag = NXReadSelection.None)
         {
             _flags = flag;
@@ -94,7 +93,7 @@ namespace reNX
             get
             {
                 if (_baseNode != null) return _baseNode;
-                lock(_lock) {
+                lock (_lock) {
                     if (_baseNode != null) return _baseNode;
                     _fileReader.Seek(_nodeOffset);
                     bool lowMem = _flags.HasFlag(NXReadSelection.LowMemory);

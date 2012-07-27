@@ -45,8 +45,7 @@ namespace reNX.NXProperties
     {
         private readonly uint _id;
 
-        internal NXStringNode(string name, NXNode parent, NXFile file, uint strId, ushort childCount, uint firstChildId)
-            : base(name, parent, file, childCount, firstChildId)
+        internal NXStringNode(string name, NXNode parent, NXFile file, uint strId, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {
             _id = strId;
             if (_file._flags.HasFlag(NXReadSelection.EagerParseStrings))
@@ -64,11 +63,10 @@ namespace reNX.NXProperties
     /// </summary>
     public sealed class NXCanvasNode : NXLazyValuedNode<Bitmap>, IDisposable
     {
-        private GCHandle _gcH;
         private readonly uint _id;
+        private GCHandle _gcH;
 
-        internal NXCanvasNode(string name, NXNode parent, NXFile file, uint id, ushort childCount, uint firstChildId)
-            : base(name, parent, file, childCount, firstChildId)
+        internal NXCanvasNode(string name, NXNode parent, NXFile file, uint id, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {
             _id = id;
             if (_file._flags.HasFlag(NXReadSelection.EagerParseCanvas))
@@ -85,9 +83,9 @@ namespace reNX.NXProperties
         {
             lock (_file._lock) {
                 _loaded = false;
-                if(_value != null) _value.Dispose();
+                if (_value != null) _value.Dispose();
                 _value = null;
-                if(_gcH.IsAllocated) _gcH.Free();
+                if (_gcH.IsAllocated) _gcH.Free();
             }
             GC.SuppressFinalize(this);
         }
@@ -115,7 +113,8 @@ namespace reNX.NXProperties
 
                 GCHandle @in = GCHandle.Alloc(cdata, GCHandleType.Pinned);
 
-                Util.EDecompressLZ4(@in.AddrOfPinnedObject(), outBuf, bdata.Length);
+                if (Util._is64Bit) Util.EDecompressLZ464(@in.AddrOfPinnedObject(), outBuf, bdata.Length);
+                else Util.EDecompressLZ432(@in.AddrOfPinnedObject(), outBuf, bdata.Length);
                 @in.Free();
                 cdata = null;
                 return new Bitmap(width, height, 4*width, PixelFormat.Format32bppArgb, outBuf);
@@ -130,8 +129,7 @@ namespace reNX.NXProperties
     {
         private readonly uint _id;
 
-        internal NXMP3Node(string name, NXNode parent, NXFile file, uint id, ushort childCount, uint firstChildId)
-            : base(name, parent, file, childCount, firstChildId)
+        internal NXMP3Node(string name, NXNode parent, NXFile file, uint id, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {
             _id = id;
             if (_file._flags.HasFlag(NXReadSelection.EagerParseMP3))
