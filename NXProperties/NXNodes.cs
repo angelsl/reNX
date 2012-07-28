@@ -29,6 +29,7 @@
 // If you modify this library, you may extend this exception to your version
 // of the library, but you are not obligated to do so. If you do not wish to
 // do so, delete this exception statement from your version.
+
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -83,14 +84,14 @@ namespace reNX.NXProperties
         /// <filterpriority>2</filterpriority>
         public void Dispose()
         {
-            if(_loaded)
-            lock (_file._lock) {
-                if (!_loaded) return;
-                _loaded = false;
-                if (_value != null) _value.Dispose();
-                _value = null;
-                if (_gcH.IsAllocated) _gcH.Free();
-            }
+            if (_loaded)
+                lock (_file._lock) {
+                    if (!_loaded) return;
+                    _loaded = false;
+                    if (_value != null) _value.Dispose();
+                    _value = null;
+                    if (_gcH.IsAllocated) _gcH.Free();
+                }
         }
 
         #endregion

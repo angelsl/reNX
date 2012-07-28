@@ -29,6 +29,7 @@
 // If you modify this library, you may extend this exception to your version
 // of the library, but you are not obligated to do so. If you do not wish to
 // do so, delete this exception statement from your version.
+
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -39,7 +40,7 @@ using reNX.NXProperties;
 namespace reNX
 {
     /// <summary>
-    /// An NX file.
+    ///   An NX file.
     /// </summary>
     public sealed unsafe class NXFile : IDisposable
     {
@@ -49,8 +50,8 @@ namespace reNX
         internal readonly byte* _start;
         private NXNode _baseNode;
 
-        private bool _disposed;
         internal long _canvasOffset = -1;
+        private bool _disposed;
         internal long _mp3Offset = -1;
         internal long _nodeOffset;
         private BytePointerObject _pointerWrapper;
@@ -140,7 +141,7 @@ namespace reNX
             _strOffsets = new long[hd.StringCount];
             _strings = new string[_strOffsets.Length];
 
-            if (hd.BitmapCount > 0)  _canvasOffset = hd.BitmapBlock;
+            if (hd.BitmapCount > 0) _canvasOffset = hd.BitmapBlock;
             if (hd.SoundCount > 0) _mp3Offset = hd.SoundBlock;
 
             byte* ptr = _start + hd.StringBlock;
@@ -171,18 +172,25 @@ namespace reNX
         {
             [FieldOffset(0)]
             public readonly uint PKG3;
+
             [FieldOffset(8)]
             public readonly long NodeBlock;
+
             [FieldOffset(16)]
             public readonly uint StringCount;
+
             [FieldOffset(20)]
             public readonly long StringBlock;
+
             [FieldOffset(28)]
             public readonly uint BitmapCount;
+
             [FieldOffset(32)]
             public readonly long BitmapBlock;
+
             [FieldOffset(40)]
             public readonly uint SoundCount;
+
             [FieldOffset(44)]
             public readonly long SoundBlock;
         }
