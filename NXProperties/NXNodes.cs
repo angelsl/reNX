@@ -67,11 +67,15 @@ namespace reNX.NXProperties
     public sealed class NXCanvasNode : NXLazyValuedNode<Bitmap>, IDisposable
     {
         private readonly uint _id;
+        private readonly ushort _width;
+        private readonly ushort _height;
         private GCHandle _gcH;
 
-        internal NXCanvasNode(string name, NXNode parent, NXFile file, uint id, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
+        internal NXCanvasNode(string name, NXNode parent, NXFile file, uint id, ushort width, ushort height, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {
             _id = id;
+            _width = width;
+            _height = height;
             if ((_file._flags & NXReadSelection.EagerParseCanvas) == NXReadSelection.EagerParseCanvas)
                 CheckLoad();
         }
@@ -111,33 +115,15 @@ namespace reNX.NXProperties
         protected override unsafe Bitmap LoadValue()
         {
             if (_file._canvasOffset < 0 || (_file._flags & NXReadSelection.NeverParseCanvas) == NXReadSelection.NeverParseCanvas) return null;
-            byte* ptr = _file._start + *((ulong*)(_file._start + _file._canvasOffset + _id*8));
-            BitmapInfo bi = *((BitmapInfo*)ptr);
-            byte[] bdata = new byte[bi.Width*bi.Height*4];
+            byte[] bdata = new byte[_width*_height*4];
             _gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned);
             IntPtr outBuf = _gcH.AddrOfPinnedObject();
 
-            if (Util._is64Bit) Util.EDecompressLZ464(ptr + 8, outBuf, bdata.Length);
-            else Util.EDecompressLZ432(ptr + 8, outBuf, bdata.Length);
-            return new Bitmap(bi.Width, bi.Height, 4*bi.Width, PixelFormat.Format32bppArgb, outBuf);
+            byte* ptr = _file._start + *((ulong*)(_file._start + _file._canvasOffset + _id * 8 + 4));
+            if (Util._is64Bit) Util.EDecompressLZ464(ptr, outBuf, bdata.Length);
+            else Util.EDecompressLZ432(ptr, outBuf, bdata.Length);
+            return new Bitmap(_width, _height, 4*_width, PixelFormat.Format32bppArgb, outBuf);
         }
-
-        #region Nested type: BitmapInfo
-
-        [StructLayout(LayoutKind.Explicit)]
-        private struct BitmapInfo
-        {
-            [FieldOffset(0)]
-            public ushort Width;
-
-            [FieldOffset(2)]
-            public ushort Height;
-
-            [FieldOffset(4)]
-            public uint DataLen;
-        }
-
-        #endregion
     }
 
     /// <summary>
@@ -146,10 +132,12 @@ namespace reNX.NXProperties
     public sealed class NXMP3Node : NXLazyValuedNode<byte[]>
     {
         private readonly uint _id;
+        private readonly int _len;
 
-        internal NXMP3Node(string name, NXNode parent, NXFile file, uint id, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
+        internal NXMP3Node(string name, NXNode parent, NXFile file, uint id, int len, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {
             _id = id;
+            _len = len;
             if ((_file._flags & NXReadSelection.EagerParseMP3) == NXReadSelection.EagerParseMP3)
                 CheckLoad();
         }
@@ -162,9 +150,8 @@ namespace reNX.NXProperties
         {
             if (_file._mp3Offset < 0) return null;
             byte* ptr = _file._start + *((ulong*)(_file._start + _file._mp3Offset + _id*8));
-            int len = *((int*)ptr);
-            byte[] ret = new byte[len];
-            Marshal.Copy((IntPtr)ptr, ret, 0, len);
+            byte[] ret = new byte[_len];
+            Marshal.Copy((IntPtr)ptr, ret, 0, _len);
             return ret;
         }
     }

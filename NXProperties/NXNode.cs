@@ -199,7 +199,7 @@ namespace reNX.NXProperties
                     ret = new NXNode(name, parent, file, nd.ChildCount, nd.FirstChildID);
                     break;
                 case 1:
-                    ret = new NXValuedNode<int>(name, parent, file, nd.Type1Data, nd.ChildCount, nd.FirstChildID);
+                    ret = new NXValuedNode<long>(name, parent, file, nd.Type1Data, nd.ChildCount, nd.FirstChildID);
                     break;
                 case 2:
                     ret = new NXValuedNode<double>(name, parent, file, nd.Type2Data, nd.ChildCount, nd.FirstChildID);
@@ -208,13 +208,13 @@ namespace reNX.NXProperties
                     ret = new NXStringNode(name, parent, file, nd.TypeIDData, nd.ChildCount, nd.FirstChildID);
                     break;
                 case 4:
-                    ret = new NXValuedNode<Point>(name, parent, file, new Point(nd.Type1Data, nd.Type4DataY), nd.ChildCount, nd.FirstChildID);
+                    ret = new NXValuedNode<Point>(name, parent, file, new Point(nd.Type4DataX, nd.Type4DataY), nd.ChildCount, nd.FirstChildID);
                     break;
                 case 5:
-                    ret = new NXCanvasNode(name, parent, file, nd.TypeIDData, nd.ChildCount, nd.FirstChildID);
+                    ret = new NXCanvasNode(name, parent, file, nd.TypeIDData, nd.Type5Width, nd.Type5Height, nd.ChildCount, nd.FirstChildID);
                     break;
                 case 6:
-                    ret = new NXMP3Node(name, parent, file, nd.TypeIDData, nd.ChildCount, nd.FirstChildID);
+                    ret = new NXMP3Node(name, parent, file, nd.TypeIDData, nd.Type4DataY, nd.ChildCount, nd.FirstChildID);
                     break;
                 default:
                     return Util.Die<NXNode>(string.Format("NX node has invalid type {0}; dying", nd.Type));
@@ -235,25 +235,34 @@ namespace reNX.NXProperties
             public readonly uint NodeNameID;
 
             [FieldOffset(4)]
+            public readonly uint FirstChildID;
+
+            [FieldOffset(8)]
             public readonly ushort ChildCount;
 
-            [FieldOffset(6)]
+            [FieldOffset(10)]
             public readonly ushort Type;
 
-            [FieldOffset(8)]
-            public readonly int Type1Data;
+            [FieldOffset(12)]
+            public readonly long Type1Data;
 
-            [FieldOffset(8)]
+            [FieldOffset(12)]
             public readonly double Type2Data;
 
-            [FieldOffset(8)]
+            [FieldOffset(12)]
             public readonly uint TypeIDData;
 
             [FieldOffset(12)]
+            public readonly int Type4DataX;
+
+            [FieldOffset(16)]
             public readonly int Type4DataY;
 
             [FieldOffset(16)]
-            public readonly uint FirstChildID;
+            public readonly ushort Type5Width;
+
+            [FieldOffset(18)]
+            public readonly ushort Type5Height;
         }
 
         #endregion

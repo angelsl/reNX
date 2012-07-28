@@ -54,8 +54,8 @@ namespace reNX
         private bool _disposed;
         internal long _mp3Offset = -1L;
         internal long _nodeOffset;
+        private long _stringOffset;
         private BytePointerObject _pointerWrapper;
-        private long[] _strOffsets;
 
         private string[] _strings;
 
@@ -105,7 +105,6 @@ namespace reNX
             _disposed = true;
             if (_pointerWrapper != null) _pointerWrapper.Dispose();
             _pointerWrapper = null;
-            _strOffsets = null;
             _baseNode = null;
             _strings = null;
             GC.SuppressFinalize(this);
@@ -135,25 +134,19 @@ namespace reNX
         private void Parse()
         {
             HeaderData hd = *((HeaderData*)_start);
-            if (hd.PKG3 != 0x33474B50) Util.Die("NX file has invalid header; invalid magic");
+            if (hd.PKG3 != 0x34474B50) Util.Die("NX file has invalid header; invalid magic");
             _nodeOffset = hd.NodeBlock;
-            _strOffsets = new long[hd.StringCount];
-            _strings = new string[_strOffsets.Length];
+            _stringOffset = hd.StringBlock;
+            _strings = new string[hd.StringCount];
 
             if (hd.BitmapCount > 0) _canvasOffset = hd.BitmapBlock;
             if (hd.SoundCount > 0) _mp3Offset = hd.SoundBlock;
-
-            byte* ptr = _start + hd.StringBlock;
-            for (uint i = 0; i < hd.StringCount; ++i) {
-                _strOffsets[i] = ptr - _start;
-                ptr += *((ushort*)ptr) + 2;
-            }
         }
 
         internal string GetString(uint id)
         {
             if (_strings[id] != null) return _strings[id];
-            byte* ptr = _start + _strOffsets[id];
+            byte* ptr = _start + *((ulong*)(_start + _stringOffset + id * 8));
             byte[] raw = new byte[*((ushort*)ptr)];
             Marshal.Copy((IntPtr)(ptr + 2), raw, 0, raw.Length);
             return (_strings[id] = Encoding.UTF8.GetString(raw));
