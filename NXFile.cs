@@ -50,9 +50,9 @@ namespace reNX
         internal readonly byte* _start;
         private NXNode _baseNode;
 
-        internal long _canvasOffset = -1;
+        internal long _canvasOffset = -1L;
         private bool _disposed;
-        internal long _mp3Offset = -1;
+        internal long _mp3Offset = -1L;
         internal long _nodeOffset;
         private BytePointerObject _pointerWrapper;
         private long[] _strOffsets;
@@ -79,7 +79,6 @@ namespace reNX
         public NXFile(byte[] input, NXReadSelection flag = NXReadSelection.None)
         {
             _flags = flag;
-            ;
             _start = (_pointerWrapper = new ByteArrayPointer(input)).Pointer;
             Parse();
         }
