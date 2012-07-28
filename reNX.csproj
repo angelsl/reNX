@@ -59,6 +59,7 @@
     <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assembine\BytePointerObject.cs" />
     <Compile Include="Assembine\NullEnumerator.cs" />
     <Compile Include="NXFile.cs" />
     <Compile Include="NXProperties\NXNode.cs" />
