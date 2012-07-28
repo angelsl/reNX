@@ -37,7 +37,7 @@ namespace reNX
     ///   An exception thrown when a parsing error occurs.
     /// </summary>
     [Serializable]
-    public class NXException : Exception
+    public sealed class NXException : Exception
     {
         internal NXException(string message = "", Exception innerException = null) : base(message, innerException)
         {}

@@ -231,28 +231,28 @@ namespace reNX.NXProperties
         internal struct NodeData
         {
             [FieldOffset(0)]
-            public uint NodeNameID;
+            public readonly uint NodeNameID;
 
             [FieldOffset(4)]
-            public ushort ChildCount;
+            public readonly ushort ChildCount;
 
             [FieldOffset(6)]
-            public ushort Type;
+            public readonly ushort Type;
 
             [FieldOffset(8)]
-            public int Type1Data;
+            public readonly int Type1Data;
 
             [FieldOffset(8)]
-            public double Type2Data;
+            public readonly double Type2Data;
 
             [FieldOffset(8)]
-            public uint TypeIDData;
+            public readonly uint TypeIDData;
 
             [FieldOffset(12)]
-            public int Type4DataY;
+            public readonly int Type4DataY;
 
             [FieldOffset(16)]
-            public uint FirstChildID;
+            public readonly uint FirstChildID;
         }
 
         #endregion

@@ -39,6 +39,7 @@ using reNX.NXProperties;
 namespace reNX
 {
     /// <summary>
+    /// An NX file.
     /// </summary>
     public sealed unsafe class NXFile : IDisposable
     {
@@ -48,8 +49,8 @@ namespace reNX
         internal readonly byte* _start;
         private NXNode _baseNode;
 
-        internal long _canvasOffset = -1;
         private bool _disposed;
+        internal long _canvasOffset = -1;
         internal long _mp3Offset = -1;
         internal long _nodeOffset;
         private BytePointerObject _pointerWrapper;
@@ -64,9 +65,8 @@ namespace reNX
         /// <param name="flag"> NX parsing flags. </param>
         public NXFile(string path, NXReadSelection flag = NXReadSelection.None)
         {
-            _pointerWrapper = new MemoryMappedFile(path);
             _flags = flag;
-            _start = _pointerWrapper.Pointer;
+            _start = (_pointerWrapper = new MemoryMappedFile(path)).Pointer;
             Parse();
         }
 
@@ -78,8 +78,8 @@ namespace reNX
         public NXFile(byte[] input, NXReadSelection flag = NXReadSelection.None)
         {
             _flags = flag;
-            _pointerWrapper = new ByteArrayPointer(input);
-            _start = _pointerWrapper.Pointer;
+            ;
+            _start = (_pointerWrapper = new ByteArrayPointer(input)).Pointer;
             Parse();
         }
 
@@ -91,8 +91,7 @@ namespace reNX
             get
             {
                 if (_baseNode != null) return _baseNode;
-                _baseNode = NXNode.ParseNode((NXNode.NodeData*)(_start + _nodeOffset), null, this);
-                return _baseNode;
+                return (_baseNode = NXNode.ParseNode((NXNode.NodeData*)(_start + _nodeOffset), null, this));
             }
         }
 
@@ -136,21 +135,16 @@ namespace reNX
         private void Parse()
         {
             HeaderData hd = *((HeaderData*)_start);
-            if (hd.PKG3 != 0x33474B50)
-                Util.Die("NX file has invalid header; invalid magic");
+            if (hd.PKG3 != 0x33474B50) Util.Die("NX file has invalid header; invalid magic");
             _nodeOffset = hd.NodeBlock;
-            uint numStr = hd.StringCount;
-            _strOffsets = new long[numStr];
+            _strOffsets = new long[hd.StringCount];
             _strings = new string[_strOffsets.Length];
-            long strStart = hd.StringBlock;
 
-            if (hd.BitmapCount > 0)
-                _canvasOffset = hd.BitmapBlock;
-            if (hd.SoundCount > 0)
-                _mp3Offset = hd.SoundBlock;
+            if (hd.BitmapCount > 0)  _canvasOffset = hd.BitmapBlock;
+            if (hd.SoundCount > 0) _mp3Offset = hd.SoundBlock;
 
-            byte* ptr = _start + strStart;
-            for (uint i = 0; i < numStr; ++i) {
+            byte* ptr = _start + hd.StringBlock;
+            for (uint i = 0; i < hd.StringCount; ++i) {
                 _strOffsets[i] = ptr - _start;
                 ptr += *((ushort*)ptr) + 2;
             }
@@ -158,14 +152,11 @@ namespace reNX
 
         internal string GetString(uint id)
         {
-            if (_strings[id] != null)
-                return _strings[id];
+            if (_strings[id] != null) return _strings[id];
             byte* ptr = _start + _strOffsets[id];
             byte[] raw = new byte[*((ushort*)ptr)];
             Marshal.Copy((IntPtr)(ptr + 2), raw, 0, raw.Length);
-            string ret = Encoding.UTF8.GetString(raw);
-            _strings[id] = ret;
-            return ret;
+            return (_strings[id] = Encoding.UTF8.GetString(raw));
         }
 
         internal void CheckDisposed()
@@ -175,18 +166,25 @@ namespace reNX
 
         #region Nested type: HeaderData
 
-        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        [StructLayout(LayoutKind.Explicit, Pack = 4, Size = 52)]
         private struct HeaderData
         {
-            public uint PKG3;
-            public uint NodeCount;
-            public long NodeBlock;
-            public uint StringCount;
-            public long StringBlock;
-            public uint BitmapCount;
-            public long BitmapBlock;
-            public uint SoundCount;
-            public long SoundBlock;
+            [FieldOffset(0)]
+            public readonly uint PKG3;
+            [FieldOffset(8)]
+            public readonly long NodeBlock;
+            [FieldOffset(16)]
+            public readonly uint StringCount;
+            [FieldOffset(20)]
+            public readonly long StringBlock;
+            [FieldOffset(28)]
+            public readonly uint BitmapCount;
+            [FieldOffset(32)]
+            public readonly long BitmapBlock;
+            [FieldOffset(40)]
+            public readonly uint SoundCount;
+            [FieldOffset(44)]
+            public readonly long SoundBlock;
         }
 
         #endregion
@@ -232,5 +230,26 @@ namespace reNX
         ///   Set this flag to disable lazy loading of string, MP3 and canvas properties.
         /// </summary>
         EagerParseAllProperties = EagerParseCanvas | EagerParseMP3 | EagerParseStrings,
+    }
+
+    internal static class Util
+    {
+        internal static readonly bool _is64Bit = IntPtr.Size == 8;
+
+        internal static T Die<T>(string cause)
+        {
+            throw new NXException(cause);
+        }
+
+        internal static void Die(string cause)
+        {
+            throw new NXException(cause);
+        }
+
+        [DllImport("lz4_32", EntryPoint = "LZ4_uncompress")]
+        internal static extern unsafe int EDecompressLZ432(byte* source, IntPtr dest, int outputLen);
+
+        [DllImport("lz4_64", EntryPoint = "LZ4_uncompress")]
+        internal static extern unsafe int EDecompressLZ464(byte* source, IntPtr dest, int outputLen);
     }
 }
