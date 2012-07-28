@@ -32,6 +32,7 @@
 using System;
 using System.ComponentModel;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
@@ -61,59 +62,11 @@ namespace reNX
             return ((tnrs & nrs) == nrs);
         }
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        internal static extern SafeFileHandle CreateFile(string lpFileName, [MarshalAs(UnmanagedType.U4)] FileAccess dwDesiredAccess, [MarshalAs(UnmanagedType.U4)] FileShare dwShareMode, IntPtr lpSecurityAttributes, [MarshalAs(UnmanagedType.U4)] FileMode dwCreationDisposition, [MarshalAs(UnmanagedType.U4)] FileAttributes dwFlagsAndAttributes, IntPtr hTemplateFile);
-
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        internal static extern IntPtr CreateFileMapping(SafeFileHandle hFile, IntPtr lpFileMappingAttributes, FileMapProtection flProtect, uint dwMaximumSizeHigh, uint dwMaximumSizeLow, [MarshalAs(UnmanagedType.LPTStr)] string lpName);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        internal static extern IntPtr MapViewOfFile(IntPtr hFileMappingObject, FileMapAccess dwDesiredAccess, uint dwFileOffsetHigh, uint dwFileOffsetLow, uint dwNumberOfBytesToMap);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool CloseHandle(IntPtr hObject);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        internal static extern bool UnmapViewOfFile(IntPtr lpBaseAddress);
-
-        [DllImport("lz4_32.dll", EntryPoint = "LZ4_uncompress")]
+        [DllImport("lz4_32", EntryPoint = "LZ4_uncompress")]
         internal static extern unsafe int EDecompressLZ432(byte* source, IntPtr dest, int outputLen);
 
-        [DllImport("lz4_64.dll", EntryPoint = "LZ4_uncompress")]
+        [DllImport("lz4_64", EntryPoint = "LZ4_uncompress")]
         internal static extern unsafe int EDecompressLZ464(byte* source, IntPtr dest, int outputLen);
-
-        #region Nested type: FileMapAccess
-
-        [Flags]
-        internal enum FileMapAccess : uint
-        {
-            FileMapCopy = 0x0001,
-            FileMapWrite = 0x0002,
-            FileMapRead = 0x0004,
-            FileMapAllAccess = 0x001f,
-            FileMapExecute = 0x0020,
-        }
-
-        #endregion
-
-        #region Nested type: FileMapProtection
-
-        [Flags]
-        internal enum FileMapProtection : uint
-        {
-            PageReadonly = 0x02,
-            PageReadWrite = 0x04,
-            PageWriteCopy = 0x08,
-            PageExecuteRead = 0x20,
-            PageExecuteReadWrite = 0x40,
-            SectionCommit = 0x8000000,
-            SectionImage = 0x1000000,
-            SectionNoCache = 0x10000000,
-            SectionReserve = 0x4000000,
-        }
-
-        #endregion
     }
 
     internal unsafe interface BytePointerObject : IDisposable
@@ -163,20 +116,38 @@ namespace reNX
 
     internal unsafe class MemoryMappedFile : BytePointerObject
     {
+        private static readonly bool _isLinux;
         private bool _disposed;
         private IntPtr _fmap;
         private IntPtr _fview;
         private SafeFileHandle _sfh;
+        private int _lfd;
+        private ulong _fsize;
         private byte* _start;
+
+        static MemoryMappedFile()
+        {
+            int p = (int)Environment.OSVersion.Platform;
+            _isLinux = p == 4 || p == 6 || p == 128;
+            if (_isLinux)
+                Assembly.Load("Mono.Posix");
+        }
 
         internal MemoryMappedFile(string path)
         {
-            _sfh = Util.CreateFile(path, FileAccess.Read, FileShare.Read, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
+            if (_isLinux) {
+                _fsize = (ulong)new FileInfo(path).Length;
+                _lfd = PLOpenReadonly(path);
+                _fmap = PLMMap(_lfd, _fsize);
+                _start = (byte*)_fmap.ToPointer();
+                return;
+            }
+            _sfh = PWCreateFile(path, FileAccess.Read, FileShare.Read, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
             if (_sfh.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
-            _fmap = Util.CreateFileMapping(_sfh, IntPtr.Zero, Util.FileMapProtection.PageReadonly, 0, 0, null);
+            _fmap = PWCreateFileMapping(_sfh, IntPtr.Zero, 2U, 0, 0, null);
             if (_fmap.ToInt32() == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
-            _fview = Util.MapViewOfFile(_fmap, Util.FileMapAccess.FileMapRead, 0, 0, 0);
-            if (_fmap.ToInt32() == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
+            _fview = PWMapViewOfFile(_fmap, 4U, 0, 0, 0);
+            if (_fview.ToInt32() == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
             _start = (byte*)_fview.ToPointer();
         }
 
@@ -199,9 +170,66 @@ namespace reNX
         {
             if (_disposed) throw new ObjectDisposedException("Memory mapped file");
             _disposed = true;
-            Util.UnmapViewOfFile(_fview);
-            Util.CloseHandle(_fmap);
-            Util.CloseHandle(_sfh.DangerousGetHandle());
+            if(_isLinux) {
+                PLMUnmap(_fmap, _fsize);
+                PLClose(_lfd);
+                return;
+            }
+            PWUnmapViewOfFile(_fview);
+            PWCloseHandle(_fmap);
+            PWCloseHandle(_sfh.DangerousGetHandle());
+        }
+
+        #endregion
+
+        #region mmap P/Invoke (Windows)
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto, EntryPoint = "CreateFile")]
+        private static extern SafeFileHandle PWCreateFile(string lpFileName, [MarshalAs(UnmanagedType.U4)] FileAccess dwDesiredAccess, [MarshalAs(UnmanagedType.U4)] FileShare dwShareMode, IntPtr lpSecurityAttributes, [MarshalAs(UnmanagedType.U4)] FileMode dwCreationDisposition, [MarshalAs(UnmanagedType.U4)] FileAttributes dwFlagsAndAttributes, IntPtr hTemplateFile);
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto, EntryPoint = "CreateFileMapping")]
+        private static extern IntPtr PWCreateFileMapping(SafeFileHandle hFile, IntPtr lpFileMappingAttributes, uint flProtect, uint dwMaximumSizeHigh, uint dwMaximumSizeLow, [MarshalAs(UnmanagedType.LPTStr)] string lpName);
+
+        [DllImport("kernel32.dll", SetLastError = true, EntryPoint = "MapViewOfFile")]
+        private static extern IntPtr PWMapViewOfFile(IntPtr hFileMappingObject, uint dwDesiredAccess, uint dwFileOffsetHigh, uint dwFileOffsetLow, uint dwNumberOfBytesToMap);
+
+        [DllImport("kernel32.dll", SetLastError = true, EntryPoint = "CloseHandle")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool PWCloseHandle(IntPtr hObject);
+
+        [DllImport("kernel32.dll", SetLastError = true, EntryPoint = "UnmapViewOfFile")]
+        private static extern bool PWUnmapViewOfFile(IntPtr lpBaseAddress);
+
+        #endregion
+
+        #region mmap P/Invoke (Linux/Mono)
+
+        private static int PLOpenReadonly(string path)
+        {
+            Type openFlags = Type.GetType(Assembly.CreateQualifiedName("Mono.Posix", "Mono.Unix.Native.OpenFlags"));
+            MethodInfo mi = Type.GetType(Assembly.CreateQualifiedName("Mono.Posix", "Mono.Unix.Native.Syscall")).GetMethod("open", new[] {typeof(string), openFlags});
+            return (int)mi.Invoke(null, new object[] {path, openFlags.GetField("O_RDONLY").GetValue(null)});
+        }
+
+        private static int PLClose(int fd)
+        {
+            MethodInfo mi = Type.GetType(Assembly.CreateQualifiedName("Mono.Posix", "Mono.Unix.Native.Syscall")).GetMethod("close", new[] {typeof(int)});
+            return (int)mi.Invoke(null, new object[] {fd});
+        }
+
+        private static IntPtr PLMMap(int fd, ulong fsize)
+        {
+            Type mmapProts = Type.GetType(Assembly.CreateQualifiedName("Mono.Posix", "Mono.Unix.Native.MmapProts"));
+            Type mmapFlags = Type.GetType(Assembly.CreateQualifiedName("Mono.Posix", "Mono.Unix.Native.MmapFlags"));
+            MethodInfo mi = Type.GetType(Assembly.CreateQualifiedName("Mono.Posix", "Mono.Unix.Native.Syscall"))
+                .GetMethod("mmap", new[] { typeof(IntPtr), typeof(ulong), mmapProts, mmapFlags, typeof(int), typeof(long) });
+            return (IntPtr)mi.Invoke(null, new object[] { IntPtr.Zero, fsize, mmapProts.GetField("PROT_READ").GetValue(null), mmapFlags.GetField("MAP_SHARED").GetValue(null), fd, 0 });
+        }
+
+        private static int PLMUnmap(IntPtr mmap, ulong fsize)
+        {
+            MethodInfo mi = Type.GetType(Assembly.CreateQualifiedName("Mono.Posix", "Mono.Unix.Native.Syscall")).GetMethod("munmap", new[] { typeof(IntPtr), typeof(ulong) });
+            return (int)mi.Invoke(null, new object[] { mmap, fsize });
         }
 
         #endregion
