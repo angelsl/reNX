@@ -116,6 +116,8 @@ namespace reNX
 
     internal unsafe class MemoryMappedFile : BytePointerObject
     {
+        private static readonly string _monoPosix = "Mono.Posix, Version=2.0.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756";
+
         private static readonly bool _isLinux;
         private bool _disposed;
         private IntPtr _fmap;
@@ -130,7 +132,7 @@ namespace reNX
             int p = (int)Environment.OSVersion.Platform;
             _isLinux = p == 4 || p == 6 || p == 128;
             if (_isLinux)
-                Assembly.Load("Mono.Posix");
+                Assembly.Load(_monoPosix);
         }
 
         internal MemoryMappedFile(string path)
@@ -209,29 +211,29 @@ namespace reNX
 
         private static int PLOpenReadonly(string path)
         {
-            Type openFlags = Type.GetType(Assembly.CreateQualifiedName("Mono.Posix", "Mono.Unix.Native.OpenFlags"));
-            MethodInfo mi = Type.GetType(Assembly.CreateQualifiedName("Mono.Posix", "Mono.Unix.Native.Syscall")).GetMethod("open", new[] {typeof(string), openFlags});
+            Type openFlags = Type.GetType(Assembly.CreateQualifiedName(_monoPosix, "Mono.Unix.Native.OpenFlags"));
+            MethodInfo mi = Type.GetType(Assembly.CreateQualifiedName(_monoPosix, "Mono.Unix.Native.Syscall")).GetMethod("open", new[] { typeof(string), openFlags });
             return (int)mi.Invoke(null, new object[] {path, openFlags.GetField("O_RDONLY").GetValue(null)});
         }
 
         private static int PLClose(int fd)
         {
-            MethodInfo mi = Type.GetType(Assembly.CreateQualifiedName("Mono.Posix", "Mono.Unix.Native.Syscall")).GetMethod("close", new[] {typeof(int)});
+            MethodInfo mi = Type.GetType(Assembly.CreateQualifiedName(_monoPosix, "Mono.Unix.Native.Syscall")).GetMethod("close", new[] { typeof(int) });
             return (int)mi.Invoke(null, new object[] {fd});
         }
 
         private static IntPtr PLMMap(int fd, ulong fsize)
         {
-            Type mmapProts = Type.GetType(Assembly.CreateQualifiedName("Mono.Posix", "Mono.Unix.Native.MmapProts"));
-            Type mmapFlags = Type.GetType(Assembly.CreateQualifiedName("Mono.Posix", "Mono.Unix.Native.MmapFlags"));
-            MethodInfo mi = Type.GetType(Assembly.CreateQualifiedName("Mono.Posix", "Mono.Unix.Native.Syscall"))
+            Type mmapProts = Type.GetType(Assembly.CreateQualifiedName(_monoPosix, "Mono.Unix.Native.MmapProts"));
+            Type mmapFlags = Type.GetType(Assembly.CreateQualifiedName(_monoPosix, "Mono.Unix.Native.MmapFlags"));
+            MethodInfo mi = Type.GetType(Assembly.CreateQualifiedName(_monoPosix, "Mono.Unix.Native.Syscall"))
                 .GetMethod("mmap", new[] { typeof(IntPtr), typeof(ulong), mmapProts, mmapFlags, typeof(int), typeof(long) });
             return (IntPtr)mi.Invoke(null, new object[] { IntPtr.Zero, fsize, mmapProts.GetField("PROT_READ").GetValue(null), mmapFlags.GetField("MAP_SHARED").GetValue(null), fd, 0 });
         }
 
         private static int PLMUnmap(IntPtr mmap, ulong fsize)
         {
-            MethodInfo mi = Type.GetType(Assembly.CreateQualifiedName("Mono.Posix", "Mono.Unix.Native.Syscall")).GetMethod("munmap", new[] { typeof(IntPtr), typeof(ulong) });
+            MethodInfo mi = Type.GetType(Assembly.CreateQualifiedName(_monoPosix, "Mono.Unix.Native.Syscall")).GetMethod("munmap", new[] { typeof(IntPtr), typeof(ulong) });
             return (int)mi.Invoke(null, new object[] { mmap, fsize });
         }
 
