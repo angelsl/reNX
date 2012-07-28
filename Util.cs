@@ -29,7 +29,6 @@
 // If you modify this library, you may extend this exception to your version
 // of the library, but you are not obligated to do so. If you do not wish to
 // do so, delete this exception statement from your version.
-
 using System;
 using System.ComponentModel;
 using System.IO;
@@ -124,9 +123,9 @@ namespace reNX
 
     internal unsafe class ByteArrayPointer : BytePointerObject
     {
+        private byte[] _array;
         private bool _disposed;
         private GCHandle _gcH;
-        private byte[] _array;
         private byte* _start;
 
         internal ByteArrayPointer(byte[] array)
@@ -136,8 +135,10 @@ namespace reNX
             _start = (byte*)_gcH.AddrOfPinnedObject();
         }
 
+        #region BytePointerObject Members
+
         /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        ///   Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         /// <filterpriority>2</filterpriority>
         public void Dispose()
@@ -148,7 +149,16 @@ namespace reNX
             _array = null;
         }
 
-        public byte* Pointer { get { if (_disposed) throw new ObjectDisposedException("Memory mapped file"); return _start; } }
+        public byte* Pointer
+        {
+            get
+            {
+                if (_disposed) throw new ObjectDisposedException("Memory mapped file");
+                return _start;
+            }
+        }
+
+        #endregion
     }
 
     internal unsafe class MemoryMappedFile : BytePointerObject
@@ -170,6 +180,8 @@ namespace reNX
             _start = (byte*)_fview.ToPointer();
         }
 
+        #region BytePointerObject Members
+
         public byte* Pointer
         {
             get
@@ -178,8 +190,6 @@ namespace reNX
                 return _start;
             }
         }
-
-        #region IDisposable Members
 
         /// <summary>
         ///   Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.

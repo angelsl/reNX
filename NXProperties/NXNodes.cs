@@ -29,7 +29,6 @@
 // If you modify this library, you may extend this exception to your version
 // of the library, but you are not obligated to do so. If you do not wish to
 // do so, delete this exception statement from your version.
-
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -51,6 +50,10 @@ namespace reNX.NXProperties
                 CheckLoad();
         }
 
+        /// <summary>
+        ///   Loads the string into memory.
+        /// </summary>
+        /// <returns> The string. </returns>
         protected override string LoadValue()
         {
             return _file.GetString(_id);
@@ -91,36 +94,48 @@ namespace reNX.NXProperties
 
         #endregion
 
+        /// <summary>
+        ///   Destructor.
+        /// </summary>
         ~NXCanvasNode()
         {
             Dispose();
         }
 
-        protected unsafe override Bitmap LoadValue()
+        /// <summary>
+        ///   Loads the canvas into memory.
+        /// </summary>
+        /// <returns> The canvas, as a <see cref="Bitmap" /> </returns>
+        protected override unsafe Bitmap LoadValue()
         {
             if (_file._canvasOffset < 0 || _file._flags.IsSet(NXReadSelection.NeverParseCanvas)) return null;
-                byte* ptr = _file._start + *((ulong*)(_file._start + _file._canvasOffset + _id * 8));
-                BitmapInfo bi = *((BitmapInfo*)ptr);
-                byte[] bdata = new byte[bi.Width*bi.Height*4];
-                _gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned);
-                IntPtr outBuf = _gcH.AddrOfPinnedObject();
+            byte* ptr = _file._start + *((ulong*)(_file._start + _file._canvasOffset + _id*8));
+            BitmapInfo bi = *((BitmapInfo*)ptr);
+            byte[] bdata = new byte[bi.Width*bi.Height*4];
+            _gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned);
+            IntPtr outBuf = _gcH.AddrOfPinnedObject();
 
-                if (Util._is64Bit) Util.EDecompressLZ464(ptr + 8, outBuf, bdata.Length);
-                else Util.EDecompressLZ432(ptr + 8, outBuf, bdata.Length);
-                return new Bitmap(bi.Width, bi.Height, 4*bi.Width, PixelFormat.Format32bppArgb, outBuf);
-            
+            if (Util._is64Bit) Util.EDecompressLZ464(ptr + 8, outBuf, bdata.Length);
+            else Util.EDecompressLZ432(ptr + 8, outBuf, bdata.Length);
+            return new Bitmap(bi.Width, bi.Height, 4*bi.Width, PixelFormat.Format32bppArgb, outBuf);
         }
+
+        #region Nested type: BitmapInfo
 
         [StructLayout(LayoutKind.Explicit)]
         private struct BitmapInfo
         {
             [FieldOffset(0)]
             public ushort Width;
+
             [FieldOffset(2)]
             public ushort Height;
+
             [FieldOffset(4)]
             public uint DataLen;
         }
+
+        #endregion
     }
 
     /// <summary>
@@ -137,15 +152,18 @@ namespace reNX.NXProperties
                 CheckLoad();
         }
 
-        protected unsafe override byte[] LoadValue()
+        /// <summary>
+        ///   Loads the MP3 into memory.
+        /// </summary>
+        /// <returns> The MP3, as a byte array. </returns>
+        protected override unsafe byte[] LoadValue()
         {
             if (_file._mp3Offset < 0) return null;
-                byte* ptr = _file._start + *((ulong*)(_file._start + _file._mp3Offset + _id * 8));
-                int len = *((int*)ptr);
-                byte[] ret = new byte[len];
-                Marshal.Copy((IntPtr)ptr, ret, 0, len);
-                return ret;
-            
+            byte* ptr = _file._start + *((ulong*)(_file._start + _file._mp3Offset + _id*8));
+            int len = *((int*)ptr);
+            byte[] ret = new byte[len];
+            Marshal.Copy((IntPtr)ptr, ret, 0, len);
+            return ret;
         }
     }
 }

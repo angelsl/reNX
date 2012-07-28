@@ -29,7 +29,6 @@
 // If you modify this library, you may extend this exception to your version
 // of the library, but you are not obligated to do so. If you do not wish to
 // do so, delete this exception statement from your version.
-
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -40,21 +39,19 @@ namespace reNX
 {
     /// <summary>
     /// </summary>
-    public unsafe sealed class NXFile : IDisposable
+    public sealed unsafe class NXFile : IDisposable
     {
         internal readonly NXReadSelection _flags;
         internal readonly object _lock = new object();
-        private bool _disposed;
-
-        private BytePointerObject _pointerWrapper;
-
-        private NXNode _baseNode;
 
         internal readonly byte* _start;
+        private NXNode _baseNode;
 
-        internal long _mp3Offset = -1;
         internal long _canvasOffset = -1;
+        private bool _disposed;
+        internal long _mp3Offset = -1;
         internal long _nodeOffset;
+        private BytePointerObject _pointerWrapper;
         private long[] _strOffsets;
 
         private string[] _strings;
@@ -135,13 +132,13 @@ namespace reNX
             return (path.StartsWith("/") ? path.Substring(1) : path).Split('/').Where(node => node != ".").Aggregate(BaseNode, (current, node) => node == ".." ? current.Parent : current[node]);
         }
 
-        private unsafe void Parse()
+        private void Parse()
         {
             HeaderData hd = *((HeaderData*)_start);
             if (hd.PKG3 != 0x33474B50)
                 Util.Die("NX file has invalid header; invalid magic");
             _nodeOffset = hd.NodeBlock;
-            uint numStr = hd.StringCount;// Util.TrueOrDie(hd.StringCount, i => i > 0, "NX file has no strings!");
+            uint numStr = hd.StringCount; // Util.TrueOrDie(hd.StringCount, i => i > 0, "NX file has no strings!");
             _strOffsets = new long[numStr];
             _strings = new string[_strOffsets.Length];
             long strStart = hd.StringBlock;
@@ -156,10 +153,9 @@ namespace reNX
                 _strOffsets[i] = ptr - _start;
                 ptr += *((ushort*)ptr) + 2;
             }
-            
         }
 
-        internal unsafe string GetString(uint id)
+        internal string GetString(uint id)
         {
             if (_strings[id] != null)
                 return _strings[id];

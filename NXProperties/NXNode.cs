@@ -29,7 +29,6 @@
 // If you modify this library, you may extend this exception to your version
 // of the library, but you are not obligated to do so. If you do not wish to
 // do so, delete this exception statement from your version.
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -45,7 +44,12 @@ namespace reNX.NXProperties
     public class NXNode : IEnumerable<NXNode>
     {
         private readonly ushort _childCount;
+
+        /// <summary>
+        ///   The NX file containing this node.
+        /// </summary>
         protected readonly NXFile _file;
+
         private readonly uint _firstChild;
         private readonly string _name;
         private readonly NXNode _parent;
@@ -223,7 +227,7 @@ namespace reNX.NXProperties
 
         #region Nested type: NodeData
 
-        [StructLayout(LayoutKind.Explicit, Size=20)]
+        [StructLayout(LayoutKind.Explicit, Size = 20)]
         internal struct NodeData
         {
             [FieldOffset(0)]
@@ -255,13 +259,24 @@ namespace reNX.NXProperties
     }
 
     /// <summary>
-    ///   A node containing a value of type <typeparamref name="T" /> .
+    ///   A node containing a value of type <typeparamref name="T" />.
     /// </summary>
     /// <typeparam name="T"> The type of the contained value. </typeparam>
     public class NXValuedNode<T> : NXNode
     {
+        /// <summary>
+        ///   The value contained by this valued node.
+        /// </summary>
         protected T _value;
 
+        /// <summary>
+        ///   Constructs an NX node without providing a value. For use by <see cref="NXLazyValuedNode{T}" /> only.
+        /// </summary>
+        /// <param name="name"> The name of the NX node. </param>
+        /// <param name="parent"> The parent node of the NX node. </param>
+        /// <param name="file"> The containing file of the NX node. </param>
+        /// <param name="childCount"> The number of children this NX node contains. </param>
+        /// <param name="firstChildId"> The Node ID of the first child of this NX node. </param>
         protected NXValuedNode(string name, NXNode parent, NXFile file, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {}
 
@@ -284,13 +299,24 @@ namespace reNX.NXProperties
     }
 
     /// <summary>
-    ///   A node containing a lazily-loaded value of type <typeparamref name="T" /> .
+    ///   A node containing a lazily-loaded value of type <typeparamref name="T" />.
     /// </summary>
     /// <typeparam name="T"> The type of the contained lazily-loaded value. </typeparam>
     public abstract class NXLazyValuedNode<T> : NXValuedNode<T>
     {
+        /// <summary>
+        ///   Whether the value of this lazy-loaded node has been loaded or not.
+        /// </summary>
         protected bool _loaded;
 
+        /// <summary>
+        ///   Constructs a lazily-loaded node.
+        /// </summary>
+        /// <param name="name"> The name of the lazily-loaded node. </param>
+        /// <param name="parent"> The parent node of the lazily-loaded node. </param>
+        /// <param name="file"> The containing file of the lazily-loaded node. </param>
+        /// <param name="childCount"> The number of children this lazily-loaded node contains. </param>
+        /// <param name="firstChildId"> The Node ID of the first child of this node. </param>
         protected NXLazyValuedNode(string name, NXNode parent, NXFile file, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {}
 
@@ -307,6 +333,9 @@ namespace reNX.NXProperties
             }
         }
 
+        /// <summary>
+        ///   Checks if this node's value has been loaded, and if not, loads the value.
+        /// </summary>
         protected void CheckLoad()
         {
             if (!_loaded)
@@ -316,6 +345,10 @@ namespace reNX.NXProperties
                 }
         }
 
+        /// <summary>
+        ///   Loads this value's node into memory.
+        /// </summary>
+        /// <returns> </returns>
         protected abstract T LoadValue();
     }
 
