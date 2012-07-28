@@ -114,7 +114,7 @@ namespace reNX
         #endregion
 
         /// <summary>
-        ///   The destructor.
+        ///   Destructor.
         /// </summary>
         ~NXFile()
         {

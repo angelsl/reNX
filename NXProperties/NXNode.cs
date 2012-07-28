@@ -340,8 +340,9 @@ namespace reNX.NXProperties
         {
             if (!_loaded)
                 lock (_file._lock) {
-                    _value = LoadValue();
+                    if (_loaded) return;
                     _loaded = true;
+                    _value = LoadValue();
                 }
         }
 

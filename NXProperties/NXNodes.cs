@@ -83,13 +83,14 @@ namespace reNX.NXProperties
         /// <filterpriority>2</filterpriority>
         public void Dispose()
         {
+            if(_loaded)
             lock (_file._lock) {
+                if (!_loaded) return;
                 _loaded = false;
                 if (_value != null) _value.Dispose();
                 _value = null;
                 if (_gcH.IsAllocated) _gcH.Free();
             }
-            GC.SuppressFinalize(this);
         }
 
         #endregion
