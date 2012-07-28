@@ -135,20 +135,22 @@ namespace reNX
 
         internal MemoryMappedFile(string path)
         {
-            if (_isLinux) {
+            if (_isLinux)
+            {
                 _fsize = (ulong)new FileInfo(path).Length;
                 _lfd = PLOpenReadonly(path);
                 _fmap = PLMMap(_lfd, _fsize);
                 _start = (byte*)_fmap.ToPointer();
-                return;
+
+            } else {
+                _sfh = PWCreateFile(path, FileAccess.Read, FileShare.Read, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
+                if (_sfh.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
+                _fmap = PWCreateFileMapping(_sfh, IntPtr.Zero, 2U, 0, 0, null);
+                if (_fmap.ToInt32() == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
+                _fview = PWMapViewOfFile(_fmap, 4U, 0, 0, 0);
+                if (_fview.ToInt32() == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
+                _start = (byte*)_fview.ToPointer();
             }
-            _sfh = PWCreateFile(path, FileAccess.Read, FileShare.Read, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
-            if (_sfh.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
-            _fmap = PWCreateFileMapping(_sfh, IntPtr.Zero, 2U, 0, 0, null);
-            if (_fmap.ToInt32() == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
-            _fview = PWMapViewOfFile(_fmap, 4U, 0, 0, 0);
-            if (_fview.ToInt32() == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
-            _start = (byte*)_fview.ToPointer();
         }
 
         #region BytePointerObject Members
@@ -170,14 +172,15 @@ namespace reNX
         {
             if (_disposed) throw new ObjectDisposedException("Memory mapped file");
             _disposed = true;
-            if(_isLinux) {
+            if (_isLinux)
+            {
                 PLMUnmap(_fmap, _fsize);
                 PLClose(_lfd);
-                return;
+            } else {
+                PWUnmapViewOfFile(_fview);
+                PWCloseHandle(_fmap);
+                PWCloseHandle(_sfh.DangerousGetHandle());
             }
-            PWUnmapViewOfFile(_fview);
-            PWCloseHandle(_fmap);
-            PWCloseHandle(_sfh.DangerousGetHandle());
         }
 
         #endregion
