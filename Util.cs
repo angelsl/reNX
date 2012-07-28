@@ -148,9 +148,9 @@ namespace reNX
                 _sfh = PWCreateFile(path, FileAccess.Read, FileShare.Read, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
                 if (_sfh.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
                 _fmap = PWCreateFileMapping(_sfh, IntPtr.Zero, 2U, 0, 0, null);
-                if (_fmap.ToInt32() == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
+                if (_fmap == IntPtr.Zero) throw new Win32Exception(Marshal.GetLastWin32Error());
                 _fview = PWMapViewOfFile(_fmap, 4U, 0, 0, 0);
-                if (_fview.ToInt32() == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
+                if (_fview == IntPtr.Zero) throw new Win32Exception(Marshal.GetLastWin32Error());
                 _start = (byte*)_fview.ToPointer();
             }
         }
