@@ -228,7 +228,7 @@ namespace reNX.NXProperties
 
         #region Nested type: NodeData
 
-        [StructLayout(LayoutKind.Explicit, Size = 20)]
+        [StructLayout(LayoutKind.Explicit, Size = 20, Pack = 2)]
         internal struct NodeData
         {
             [FieldOffset(0)]
