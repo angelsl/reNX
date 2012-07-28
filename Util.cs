@@ -52,16 +52,6 @@ namespace reNX
             throw new NXException(cause);
         }
 
-        internal static T TrueOrDie<T>(T value, Func<T, bool> verifier, string deathCause)
-        {
-            return verifier(value) ? value : Die<T>(deathCause);
-        }
-
-        internal static bool IsSet(this NXReadSelection tnrs, NXReadSelection nrs)
-        {
-            return ((tnrs & nrs) == nrs);
-        }
-
         [DllImport("lz4_32", EntryPoint = "LZ4_uncompress")]
         internal static extern unsafe int EDecompressLZ432(byte* source, IntPtr dest, int outputLen);
 

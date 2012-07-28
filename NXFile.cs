@@ -139,7 +139,7 @@ namespace reNX
             if (hd.PKG3 != 0x33474B50)
                 Util.Die("NX file has invalid header; invalid magic");
             _nodeOffset = hd.NodeBlock;
-            uint numStr = hd.StringCount; // Util.TrueOrDie(hd.StringCount, i => i > 0, "NX file has no strings!");
+            uint numStr = hd.StringCount;
             _strOffsets = new long[numStr];
             _strings = new string[_strOffsets.Length];
             long strStart = hd.StringBlock;

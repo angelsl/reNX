@@ -46,7 +46,7 @@ namespace reNX.NXProperties
         internal NXStringNode(string name, NXNode parent, NXFile file, uint strId, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {
             _id = strId;
-            if (_file._flags.IsSet(NXReadSelection.EagerParseStrings))
+            if ((_file._flags & NXReadSelection.EagerParseStrings) == NXReadSelection.EagerParseStrings)
                 CheckLoad();
         }
 
@@ -71,7 +71,7 @@ namespace reNX.NXProperties
         internal NXCanvasNode(string name, NXNode parent, NXFile file, uint id, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {
             _id = id;
-            if (_file._flags.IsSet(NXReadSelection.EagerParseCanvas))
+            if ((_file._flags & NXReadSelection.EagerParseCanvas) == NXReadSelection.EagerParseCanvas)
                 CheckLoad();
         }
 
@@ -109,7 +109,7 @@ namespace reNX.NXProperties
         /// <returns> The canvas, as a <see cref="Bitmap" /> </returns>
         protected override unsafe Bitmap LoadValue()
         {
-            if (_file._canvasOffset < 0 || _file._flags.IsSet(NXReadSelection.NeverParseCanvas)) return null;
+            if (_file._canvasOffset < 0 || (_file._flags & NXReadSelection.NeverParseCanvas) == NXReadSelection.NeverParseCanvas) return null;
             byte* ptr = _file._start + *((ulong*)(_file._start + _file._canvasOffset + _id*8));
             BitmapInfo bi = *((BitmapInfo*)ptr);
             byte[] bdata = new byte[bi.Width*bi.Height*4];
@@ -149,7 +149,7 @@ namespace reNX.NXProperties
         internal NXMP3Node(string name, NXNode parent, NXFile file, uint id, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
         {
             _id = id;
-            if (_file._flags.IsSet(NXReadSelection.EagerParseMP3))
+            if ((_file._flags & NXReadSelection.EagerParseMP3) == NXReadSelection.EagerParseMP3)
                 CheckLoad();
         }
 

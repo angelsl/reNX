@@ -219,7 +219,7 @@ namespace reNX.NXProperties
                     return Util.Die<NXNode>(string.Format("NX node has invalid type {0}; dying", nd.Type));
             }
 
-            if (file._flags.IsSet(NXReadSelection.EagerParseFile))
+            if ((file._flags & NXReadSelection.EagerParseFile) == NXReadSelection.EagerParseFile)
                 ret.CheckChild();
 
             return ret;
