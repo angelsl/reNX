@@ -114,12 +114,12 @@ namespace reNX.NXProperties
         /// <returns> The canvas, as a <see cref="Bitmap" /> </returns>
         protected override unsafe Bitmap LoadValue()
         {
-            if (_file._canvasOffset < 0 || (_file._flags & NXReadSelection.NeverParseCanvas) == NXReadSelection.NeverParseCanvas) return null;
+            if (_file._canvasBlock == (ulong*)0 || (_file._flags & NXReadSelection.NeverParseCanvas) == NXReadSelection.NeverParseCanvas) return null;
             byte[] bdata = new byte[_width*_height*4];
             _gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned);
             IntPtr outBuf = _gcH.AddrOfPinnedObject();
 
-            byte* ptr = _file._start + *((ulong*)(_file._start + _file._canvasOffset + _id * 8 + 4));
+            byte* ptr = _file._start + _file._canvasBlock[_id] + 4;
             if (Util._is64Bit) Util.EDecompressLZ464(ptr, outBuf, bdata.Length);
             else Util.EDecompressLZ432(ptr, outBuf, bdata.Length);
             return new Bitmap(_width, _height, 4*_width, PixelFormat.Format32bppArgb, outBuf);
@@ -148,10 +148,9 @@ namespace reNX.NXProperties
         /// <returns> The MP3, as a byte array. </returns>
         protected override unsafe byte[] LoadValue()
         {
-            if (_file._mp3Offset < 0) return null;
-            byte* ptr = _file._start + *((ulong*)(_file._start + _file._mp3Offset + _id*8));
+            if (_file._mp3Block == (ulong*)0) return null;
             byte[] ret = new byte[_len];
-            Marshal.Copy((IntPtr)ptr, ret, 0, _len);
+            Marshal.Copy((IntPtr)(_file._start + _file._mp3Block[_id]), ret, 0, _len);
             return ret;
         }
     }

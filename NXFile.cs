@@ -50,11 +50,11 @@ namespace reNX
         internal readonly byte* _start;
         private NXNode _baseNode;
 
-        internal long _canvasOffset = -1L;
+        internal ulong* _canvasBlock = (ulong*)0;
         private bool _disposed;
-        internal long _mp3Offset = -1L;
-        internal long _nodeOffset;
-        private long _stringOffset;
+        internal ulong* _mp3Block = (ulong*)0;
+        internal NXNode.NodeData* _nodeBlock;
+        private ulong* _stringBlock;
         private BytePointerObject _pointerWrapper;
 
         private string[] _strings;
@@ -91,7 +91,7 @@ namespace reNX
             get
             {
                 if (_baseNode != null) return _baseNode;
-                return (_baseNode = NXNode.ParseNode((NXNode.NodeData*)(_start + _nodeOffset), null, this));
+                return (_baseNode = NXNode.ParseNode((NXNode.NodeData*)_nodeBlock, null, this));
             }
         }
 
@@ -135,18 +135,18 @@ namespace reNX
         {
             HeaderData hd = *((HeaderData*)_start);
             if (hd.PKG3 != 0x34474B50) Util.Die("NX file has invalid header; invalid magic");
-            _nodeOffset = hd.NodeBlock;
-            _stringOffset = hd.StringBlock;
+            _nodeBlock = (NXNode.NodeData*)(_start + hd.NodeBlock);
+            _stringBlock = (ulong*)(_start + hd.StringBlock);
             _strings = new string[hd.StringCount];
 
-            if (hd.BitmapCount > 0) _canvasOffset = hd.BitmapBlock;
-            if (hd.SoundCount > 0) _mp3Offset = hd.SoundBlock;
+            if (hd.BitmapCount > 0) _canvasBlock = (ulong*)(_start + hd.BitmapBlock);
+            if (hd.SoundCount > 0) _mp3Block = (ulong*)(_start + hd.SoundBlock);
         }
 
         internal string GetString(uint id)
         {
             if (_strings[id] != null) return _strings[id];
-            byte* ptr = _start + *((ulong*)(_start + _stringOffset + id * 8));
+            byte* ptr = _start + _stringBlock[id];
             byte[] raw = new byte[*((ushort*)ptr)];
             Marshal.Copy((IntPtr)(ptr + 2), raw, 0, raw.Length);
             return (_strings[id] = Encoding.UTF8.GetString(raw));

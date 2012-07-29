@@ -184,7 +184,7 @@ namespace reNX.NXProperties
         {
             if (_children != null || _childCount < 1) return;
             _children = new Dictionary<string, NXNode>(_childCount);
-            NodeData* start = (NodeData*)(_file._start + _file._nodeOffset + _firstChild*20);
+            NodeData* start = _file._nodeBlock + _firstChild;
             for (ushort i = 0; i < _childCount; ++i, ++start)
                 AddChild(ParseNode(start, this, _file));
         }
