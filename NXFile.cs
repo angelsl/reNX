@@ -91,7 +91,7 @@ namespace reNX
             get
             {
                 if (_baseNode != null) return _baseNode;
-                return (_baseNode = NXNode.ParseNode((NXNode.NodeData*)_nodeBlock, null, this));
+                return (_baseNode = NXNode.ParseNode(_nodeBlock, null, this));
             }
         }
 
