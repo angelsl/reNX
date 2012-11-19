@@ -6,7 +6,16 @@ It, along with [NoLifeNX](https://github.com/NoLifeDev/NoLifeNx) and [WZ2NX](htt
 reNX officially fully supports Windows and Linux only. All platforms that Mono supports are also supported, but not all features may be functional.
 
 ##Usage
-reNX has not been completed. Usage details will be added here once reNX is finished.
+Add a reference to reNX, and then load an NX file like so:
+
+    NXFile nx = new NXFile("PKG4.nx");
+
+Then access whatever nodes you need:
+
+    Bitmap m = nx.ResolvePath("Effect/BasicEff.img/LevelUp/7").ValueOrDie<Bitmap>();
+    Bitmap m = ((NXValuedNode<Bitmap>)nx["Effect"]["BasicEff.img"]["LevelUp"]["7"]).Value;
+
+If you have any questions, feel free to ask. Do consult the XMLdoc as reNX is pretty well documented.
 
 ##License
 reNX is licensed under the GNU GPL v3.0 with Classpath Exception.
