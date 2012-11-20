@@ -34,6 +34,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Assembine;
 
@@ -136,7 +137,7 @@ namespace reNX.NXProperties
         public IEnumerator<NXNode> GetEnumerator()
         {
             if (_childCount > 0 && _children == null) CheckChild();
-            return _children == null ? (IEnumerator<NXNode>)new NullEnumerator<NXNode>() : _children.Values.GetEnumerator();
+            return _children == null ? (IEnumerator<NXNode>) Enumerable.Empty<NXNode>() : _children.Values.GetEnumerator();
         }
 
         /// <summary>
