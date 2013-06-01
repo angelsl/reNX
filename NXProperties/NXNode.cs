@@ -137,7 +137,7 @@ namespace reNX.NXProperties
         public IEnumerator<NXNode> GetEnumerator()
         {
             if (_childCount > 0 && _children == null) CheckChild();
-            return _children == null ? (IEnumerator<NXNode>) Enumerable.Empty<NXNode>() : _children.Values.GetEnumerator();
+            return _children == null ? (IEnumerator<NXNode>) Enumerable.Empty<NXNode>().GetEnumerator() : _children.Values.GetEnumerator();
         }
 
         /// <summary>
