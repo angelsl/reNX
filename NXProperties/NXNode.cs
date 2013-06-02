@@ -36,46 +36,49 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Assembine;
 
 namespace reNX.NXProperties
 {
     /// <summary>
-    ///   A node containing no value.
+    ///     A node containing no value.
     /// </summary>
-    public class NXNode : IEnumerable<NXNode>
+    public unsafe class NXNode : IEnumerable<NXNode>
     {
         private readonly ushort _childCount;
 
         /// <summary>
-        ///   The NX file containing this node.
+        ///     The NX file containing this node.
         /// </summary>
         protected readonly NXFile _file;
+        /// <summary>
+        /// The pointer to the <see cref="NodeData"/> describing this node.
+        /// </summary>
+        protected readonly NodeData* _nodedata;
 
         private readonly uint _firstChild;
-        private readonly string _name;
+        
         private readonly NXNode _parent;
         private Dictionary<string, NXNode> _children;
 
-        internal NXNode(string name, NXNode parent, NXFile file, ushort childCount, uint firstChildId)
+        internal NXNode(NodeData* ptr, NXNode parent, NXFile file)
         {
-            _name = name;
+            _nodedata = ptr;
+            _firstChild = (*ptr).FirstChildID;
+            _childCount = (*ptr).ChildCount;
             _parent = parent;
             _file = file;
-            _childCount = childCount;
-            _firstChild = firstChildId;
         }
 
         /// <summary>
-        ///   The name of this node.
+        ///     The name of this node.
         /// </summary>
         public string Name
         {
-            get { return _name; }
+            get { return _file.GetString((*_nodedata).NodeNameID); }
         }
 
         /// <summary>
-        ///   The parent node of this node, that is, the node containing this node as a child.
+        ///     The parent node of this node, that is, the node containing this node as a child.
         /// </summary>
         public NXNode Parent
         {
@@ -83,7 +86,7 @@ namespace reNX.NXProperties
         }
 
         /// <summary>
-        ///   The file containing this node.
+        ///     The file containing this node.
         /// </summary>
         /// <exception cref="ObjectDisposedException">Thrown if this property is accessed after the containing file is disposed.</exception>
         public NXFile File
@@ -96,7 +99,7 @@ namespace reNX.NXProperties
         }
 
         /// <summary>
-        ///   The number of children contained in this node.
+        ///     The number of children contained in this node.
         /// </summary>
         /// <exception cref="ObjectDisposedException">Thrown if this property is accessed after the containing file is disposed.</exception>
         public int ChildCount
@@ -109,14 +112,16 @@ namespace reNX.NXProperties
         }
 
         /// <summary>
-        ///   Gets the child contained in this node that has the specified name.
+        ///     Gets the child contained in this node that has the specified name.
         /// </summary>
         /// <param name="name"> The name of the child to get. </param>
         /// <returns> The child with the specified name. </returns>
         /// <exception cref="ObjectDisposedException">Thrown if this property is accessed after the containing file is disposed.</exception>
-        /// <exception cref="KeyNotFoundException">The node does not contain a child with name
-        ///   <paramref name="name" />
-        ///   .</exception>
+        /// <exception cref="KeyNotFoundException">
+        ///     The node does not contain a child with name
+        ///     <paramref name="name" />
+        ///     .
+        /// </exception>
         public NXNode this[string name]
         {
             get
@@ -130,20 +135,24 @@ namespace reNX.NXProperties
         #region IEnumerable<NXNode> Members
 
         /// <summary>
-        ///   Returns an enumerator that iterates through the collection.
+        ///     Returns an enumerator that iterates through the collection.
         /// </summary>
-        /// <returns> A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection. </returns>
+        /// <returns>
+        ///     A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection.
+        /// </returns>
         /// <filterpriority>1</filterpriority>
         public IEnumerator<NXNode> GetEnumerator()
         {
             if (_childCount > 0 && _children == null) CheckChild();
-            return _children == null ? (IEnumerator<NXNode>) Enumerable.Empty<NXNode>().GetEnumerator() : _children.Values.GetEnumerator();
+            return _children == null ? Enumerable.Empty<NXNode>().GetEnumerator() : _children.Values.GetEnumerator();
         }
 
         /// <summary>
-        ///   Returns an enumerator that iterates through a collection.
+        ///     Returns an enumerator that iterates through a collection.
         /// </summary>
-        /// <returns> An <see cref="T:System.Collections.IEnumerator" /> object that can be used to iterate through the collection. </returns>
+        /// <returns>
+        ///     An <see cref="T:System.Collections.IEnumerator" /> object that can be used to iterate through the collection.
+        /// </returns>
         /// <filterpriority>2</filterpriority>
         IEnumerator IEnumerable.GetEnumerator()
         {
@@ -153,7 +162,7 @@ namespace reNX.NXProperties
         #endregion
 
         /// <summary>
-        ///   Returns true if this node contains a child with the specified name.
+        ///     Returns true if this node contains a child with the specified name.
         /// </summary>
         /// <param name="name"> The name of the child to check. </param>
         /// <returns> true if this node contains a child with the specified name; false otherwise </returns>
@@ -166,7 +175,7 @@ namespace reNX.NXProperties
         }
 
         /// <summary>
-        ///   Gets the child contained in this node that has the specified name.
+        ///     Gets the child contained in this node that has the specified name.
         /// </summary>
         /// <param name="name"> The name of the child to get. </param>
         /// <returns> The child with the specified name. </returns>
@@ -181,7 +190,7 @@ namespace reNX.NXProperties
             _children.Add(child.Name, child);
         }
 
-        private unsafe void CheckChild()
+        private void CheckChild()
         {
             if (_children != null || _childCount < 1) return;
             _children = new Dictionary<string, NXNode>(_childCount);
@@ -190,35 +199,34 @@ namespace reNX.NXProperties
                 AddChild(ParseNode(start, this, _file));
         }
 
-        internal static unsafe NXNode ParseNode(NodeData* ptr, NXNode parent, NXFile file)
+        internal static NXNode ParseNode(NodeData* ptr, NXNode parent, NXFile file)
         {
-            NodeData nd = *ptr;
-            string name = file.GetString(nd.NodeNameID);
             NXNode ret;
-            switch (nd.Type) {
+            switch ((*ptr).Type)
+            {
                 case 0:
-                    ret = new NXNode(name, parent, file, nd.ChildCount, nd.FirstChildID);
+                    ret = new NXNode(ptr, parent, file);
                     break;
                 case 1:
-                    ret = new NXValuedNode<long>(name, parent, file, nd.Type1Data, nd.ChildCount, nd.FirstChildID);
+                    ret = new NXInt64Node(ptr, parent, file);
                     break;
                 case 2:
-                    ret = new NXValuedNode<double>(name, parent, file, nd.Type2Data, nd.ChildCount, nd.FirstChildID);
+                    ret = new NXDoubleNode(ptr, parent, file);
                     break;
                 case 3:
-                    ret = new NXStringNode(name, parent, file, nd.TypeIDData, nd.ChildCount, nd.FirstChildID);
+                    ret = new NXStringNode(ptr, parent, file);
                     break;
                 case 4:
-                    ret = new NXValuedNode<Point>(name, parent, file, new Point(nd.Type4DataX, nd.Type4DataY), nd.ChildCount, nd.FirstChildID);
+                    ret = new NXPointNode(ptr, parent, file);
                     break;
                 case 5:
-                    ret = new NXCanvasNode(name, parent, file, nd.TypeIDData, nd.Type5Width, nd.Type5Height, nd.ChildCount, nd.FirstChildID);
+                    ret = new NXCanvasNode(ptr, parent, file);
                     break;
                 case 6:
-                    ret = new NXMP3Node(name, parent, file, nd.TypeIDData, nd.Type4DataY, nd.ChildCount, nd.FirstChildID);
+                    ret = new NXMP3Node(ptr, parent, file);
                     break;
                 default:
-                    return Util.Die<NXNode>(string.Format("NX node has invalid type {0}; dying", nd.Type));
+                    return Util.Die<NXNode>(string.Format("NX node has invalid type {0}; dying", (*ptr).Type));
             }
 
             if ((file._flags & NXReadSelection.EagerParseFile) == NXReadSelection.EagerParseFile)
@@ -229,110 +237,78 @@ namespace reNX.NXProperties
 
         #region Nested type: NodeData
 
+        /// <summary>
+        /// This structure describes a node.
+        /// </summary>
         [StructLayout(LayoutKind.Explicit, Size = 20, Pack = 2)]
-        internal struct NodeData
+        protected internal struct NodeData
         {
-            [FieldOffset(0)]
-            public readonly uint NodeNameID;
+            [FieldOffset(0)] internal readonly uint NodeNameID;
 
-            [FieldOffset(4)]
-            public readonly uint FirstChildID;
+            [FieldOffset(4)] internal readonly uint FirstChildID;
 
-            [FieldOffset(8)]
-            public readonly ushort ChildCount;
+            [FieldOffset(8)] internal readonly ushort ChildCount;
 
-            [FieldOffset(10)]
-            public readonly ushort Type;
+            [FieldOffset(10)] internal readonly ushort Type;
 
-            [FieldOffset(12)]
-            public readonly long Type1Data;
+            [FieldOffset(12)] internal readonly long Type1Data;
 
-            [FieldOffset(12)]
-            public readonly double Type2Data;
+            [FieldOffset(12)] internal readonly double Type2Data;
 
-            [FieldOffset(12)]
-            public readonly uint TypeIDData;
+            [FieldOffset(12)] internal readonly uint TypeIDData;
 
-            [FieldOffset(12)]
-            public readonly int Type4DataX;
+            [FieldOffset(12)] internal readonly int Type4DataX;
 
-            [FieldOffset(16)]
-            public readonly int Type4DataY;
+            [FieldOffset(16)] internal readonly int Type4DataY;
 
-            [FieldOffset(16)]
-            public readonly ushort Type5Width;
+            [FieldOffset(16)] internal readonly ushort Type5Width;
 
-            [FieldOffset(18)]
-            public readonly ushort Type5Height;
+            [FieldOffset(18)] internal readonly ushort Type5Height;
         }
 
         #endregion
     }
 
     /// <summary>
-    ///   A node containing a value of type <typeparamref name="T" />.
+    ///     A node containing a value of type <typeparamref name="T" />.
     /// </summary>
     /// <typeparam name="T"> The type of the contained value. </typeparam>
-    public class NXValuedNode<T> : NXNode
+    public abstract class NXValuedNode<T> : NXNode
     {
-        /// <summary>
-        ///   The value contained by this valued node.
-        /// </summary>
-        protected T _value;
-
-        /// <summary>
-        ///   Constructs an NX node without providing a value. For use by <see cref="NXLazyValuedNode{T}" /> only.
-        /// </summary>
-        /// <param name="name"> The name of the NX node. </param>
-        /// <param name="parent"> The parent node of the NX node. </param>
-        /// <param name="file"> The containing file of the NX node. </param>
-        /// <param name="childCount"> The number of children this NX node contains. </param>
-        /// <param name="firstChildId"> The Node ID of the first child of this NX node. </param>
-        protected NXValuedNode(string name, NXNode parent, NXFile file, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
-        {}
-
-        internal NXValuedNode(string name, NXNode parent, NXFile file, T value, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
+        internal unsafe NXValuedNode(NodeData* ptr, NXNode parent, NXFile file)
+            : base(ptr, parent, file)
         {
-            _value = value;
         }
 
         /// <summary>
-        ///   The value contained by this node.
+        ///     The value contained by this node.
         /// </summary>
-        public virtual T Value
-        {
-            get
-            {
-                _file.CheckDisposed();
-                return _value;
-            }
-        }
+        public abstract T Value { get; }
     }
 
     /// <summary>
-    ///   A node containing a lazily-loaded value of type <typeparamref name="T" />.
+    ///     A node containing a lazily-loaded value of type <typeparamref name="T" />.
     /// </summary>
     /// <typeparam name="T"> The type of the contained lazily-loaded value. </typeparam>
     public abstract class NXLazyValuedNode<T> : NXValuedNode<T>
     {
         /// <summary>
-        ///   Whether the value of this lazy-loaded node has been loaded or not.
+        ///     Whether the value of this lazy-loaded node has been loaded or not.
         /// </summary>
         protected bool _loaded;
 
         /// <summary>
-        ///   Constructs a lazily-loaded node.
+        ///     The value contained in this lazily-loaded node.
         /// </summary>
-        /// <param name="name"> The name of the lazily-loaded node. </param>
-        /// <param name="parent"> The parent node of the lazily-loaded node. </param>
-        /// <param name="file"> The containing file of the lazily-loaded node. </param>
-        /// <param name="childCount"> The number of children this lazily-loaded node contains. </param>
-        /// <param name="firstChildId"> The Node ID of the first child of this node. </param>
-        protected NXLazyValuedNode(string name, NXNode parent, NXFile file, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
-        {}
+        protected T _value;
+
+        internal unsafe NXLazyValuedNode(NodeData* ptr, NXNode parent, NXFile file)
+            : base(ptr, parent, file)
+        {
+        }
 
         /// <summary>
-        ///   The value contained by this node. If the value has not been loaded, the value will be loaded.
+        ///     The value contained by this node. If the value has not been loaded, the value will be loaded.
         /// </summary>
         public override T Value
         {
@@ -345,12 +321,13 @@ namespace reNX.NXProperties
         }
 
         /// <summary>
-        ///   Checks if this node's value has been loaded, and if not, loads the value.
+        ///     Checks if this node's value has been loaded, and if not, loads the value.
         /// </summary>
         protected void CheckLoad()
         {
             if (!_loaded)
-                lock (_file._lock) {
+                lock (_file._lock)
+                {
                     if (_loaded) return;
                     _loaded = true;
                     _value = LoadValue();
@@ -358,33 +335,37 @@ namespace reNX.NXProperties
         }
 
         /// <summary>
-        ///   Loads this value's node into memory.
+        ///     Loads this value's node into memory.
         /// </summary>
         /// <returns> </returns>
         protected abstract T LoadValue();
     }
 
     /// <summary>
-    ///   This class contains methods to simplify casting and retrieving of values from NX nodes.
+    ///     This class contains methods to simplify casting and retrieving of values from NX nodes.
     /// </summary>
     public static class NXValueHelper
     {
         /// <summary>
-        ///   Tries to cast this NXNode to a <see cref="NXValuedNode{T}" /> and returns its value, or returns the default value if the cast is invalid.
+        ///     Tries to cast this NXNode to a <see cref="NXValuedNode{T}" /> and returns its value, or returns the default value if the cast is invalid.
         /// </summary>
         /// <typeparam name="T"> The type of the value to return. </typeparam>
         /// <param name="n"> This NXNode. </param>
         /// <param name="def"> The default value to return should the cast fail. </param>
-        /// <returns> The contained value if the cast succeeds, or <paramref name="def" /> if the cast fails. </returns>
+        /// <returns>
+        ///     The contained value if the cast succeeds, or <paramref name="def" /> if the cast fails.
+        /// </returns>
         public static T ValueOrDefault<T>(this NXNode n, T def)
         {
-            NXValuedNode<T> nxvn = n as NXValuedNode<T>;
+            var nxvn = n as NXValuedNode<T>;
             return nxvn != null ? nxvn.Value : def;
         }
 
         /// <summary>
-        ///   Tries to cast this NXNode to a <see cref="NXValuedNode{T}" /> and returns its value, or throws an <see
-        ///    cref="InvalidCastException" /> if the cast is invalid.
+        ///     Tries to cast this NXNode to a <see cref="NXValuedNode{T}" /> and returns its value, or throws an
+        ///     <see
+        ///         cref="InvalidCastException" />
+        ///     if the cast is invalid.
         /// </summary>
         /// <typeparam name="T"> The type of the value to return. </typeparam>
         /// <param name="n"> This NXNode. </param>
@@ -392,7 +373,7 @@ namespace reNX.NXProperties
         /// <exception cref="InvalidCastException">Thrown if the cast is invalid.</exception>
         public static T ValueOrDie<T>(this NXNode n)
         {
-            return ((NXValuedNode<T>)n).Value;
+            return ((NXValuedNode<T>) n).Value;
         }
     }
 }

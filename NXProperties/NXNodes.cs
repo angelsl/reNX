@@ -38,44 +38,14 @@ using System.Runtime.InteropServices;
 namespace reNX.NXProperties
 {
     /// <summary>
-    ///   An optionally lazily-loaded string node, containing a string.
-    /// </summary>
-    public sealed class NXStringNode : NXLazyValuedNode<string>
-    {
-        private readonly uint _id;
-
-        internal NXStringNode(string name, NXNode parent, NXFile file, uint strId, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
-        {
-            _id = strId;
-            if ((_file._flags & NXReadSelection.EagerParseStrings) == NXReadSelection.EagerParseStrings)
-                CheckLoad();
-        }
-
-        /// <summary>
-        ///   Loads the string into memory.
-        /// </summary>
-        /// <returns> The string. </returns>
-        protected override string LoadValue()
-        {
-            return _file.GetString(_id);
-        }
-    }
-
-    /// <summary>
-    ///   An optionally lazily-loaded canvas node, containing a bitmap.
+    ///     An optionally lazily-loaded canvas node, containing a bitmap.
     /// </summary>
     public sealed class NXCanvasNode : NXLazyValuedNode<Bitmap>, IDisposable
     {
-        private readonly uint _id;
-        private readonly ushort _width;
-        private readonly ushort _height;
         private GCHandle _gcH;
 
-        internal NXCanvasNode(string name, NXNode parent, NXFile file, uint id, ushort width, ushort height, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
+        internal unsafe NXCanvasNode(NodeData *ptr, NXNode parent, NXFile file) : base(ptr, parent, file)
         {
-            _id = id;
-            _width = width;
-            _height = height;
             if ((_file._flags & NXReadSelection.EagerParseCanvas) == NXReadSelection.EagerParseCanvas)
                 CheckLoad();
         }
@@ -83,13 +53,14 @@ namespace reNX.NXProperties
         #region IDisposable Members
 
         /// <summary>
-        ///   Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         /// <filterpriority>2</filterpriority>
         public void Dispose()
         {
             if (_loaded)
-                lock (_file._lock) {
+                lock (_file._lock)
+                {
                     if (!_loaded) return;
                     _loaded = false;
                     if (_value != null) _value.Dispose();
@@ -101,7 +72,7 @@ namespace reNX.NXProperties
         #endregion
 
         /// <summary>
-        ///   Destructor.
+        ///     Destructor.
         /// </summary>
         ~NXCanvasNode()
         {
@@ -109,49 +80,102 @@ namespace reNX.NXProperties
         }
 
         /// <summary>
-        ///   Loads the canvas into memory.
+        ///     Loads the canvas into memory.
         /// </summary>
-        /// <returns> The canvas, as a <see cref="Bitmap" /> </returns>
+        /// <returns>
+        ///     The canvas, as a <see cref="Bitmap" />
+        /// </returns>
         protected override unsafe Bitmap LoadValue()
         {
-            if (_file._canvasBlock == (ulong*)0 || (_file._flags & NXReadSelection.NeverParseCanvas) == NXReadSelection.NeverParseCanvas) return null;
-            byte[] bdata = new byte[_width*_height*4];
+            if (_file._canvasBlock == (ulong*) 0 ||
+                (_file._flags & NXReadSelection.NeverParseCanvas) == NXReadSelection.NeverParseCanvas) return null;
+            NodeData nd = *_nodedata;
+            var bdata = new byte[nd.Type5Width * nd.Type5Height * 4];
             _gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned);
             IntPtr outBuf = _gcH.AddrOfPinnedObject();
 
-            byte* ptr = _file._start + _file._canvasBlock[_id] + 4;
+            byte* ptr = _file._start + _file._canvasBlock[nd.TypeIDData] + 4;
             if (Util._is64Bit) Util.EDecompressLZ464(ptr, outBuf, bdata.Length);
             else Util.EDecompressLZ432(ptr, outBuf, bdata.Length);
-            return new Bitmap(_width, _height, 4*_width, PixelFormat.Format32bppArgb, outBuf);
+            return new Bitmap(nd.Type5Width, nd.Type5Height, 4 * nd.Type5Width, PixelFormat.Format32bppArgb, outBuf);
         }
     }
 
     /// <summary>
-    ///   An optionally lazily-loaded canvas node, containing an MP3 file in a byte array.
+    ///     An optionally lazily-loaded canvas node, containing an MP3 file in a byte array.
     /// </summary>
-    public sealed class NXMP3Node : NXLazyValuedNode<byte[]>
+    internal sealed class NXMP3Node : NXLazyValuedNode<byte[]>
     {
-        private readonly uint _id;
-        private readonly int _len;
-
-        internal NXMP3Node(string name, NXNode parent, NXFile file, uint id, int len, ushort childCount, uint firstChildId) : base(name, parent, file, childCount, firstChildId)
+        internal unsafe NXMP3Node(NodeData* ptr, NXNode parent, NXFile file)
+            : base(ptr, parent, file)
         {
-            _id = id;
-            _len = len;
             if ((_file._flags & NXReadSelection.EagerParseMP3) == NXReadSelection.EagerParseMP3)
                 CheckLoad();
         }
 
         /// <summary>
-        ///   Loads the MP3 into memory.
+        ///     Loads the MP3 into memory.
         /// </summary>
         /// <returns> The MP3, as a byte array. </returns>
         protected override unsafe byte[] LoadValue()
         {
-            if (_file._mp3Block == (ulong*)0) return null;
-            byte[] ret = new byte[_len];
-            Marshal.Copy((IntPtr)(_file._start + _file._mp3Block[_id]), ret, 0, _len);
+            if (_file._mp3Block == (ulong*) 0) return null;
+            NodeData nd = *_nodedata;
+            var ret = new byte[nd.Type4DataY];
+            Marshal.Copy((IntPtr) (_file._start + _file._mp3Block[nd.TypeIDData]), ret, 0, nd.Type4DataY);
             return ret;
+        }
+    }
+
+    internal sealed unsafe class NXInt64Node : NXValuedNode<long>
+    {
+        public NXInt64Node(NodeData* ptr, NXNode parent, NXFile file) : base(ptr, parent, file)
+        {
+        }
+
+        public override long Value
+        {
+            get { return (*_nodedata).Type1Data; }
+        }
+    }
+
+    internal sealed unsafe class NXDoubleNode : NXValuedNode<double>
+    {
+        public NXDoubleNode(NodeData* ptr, NXNode parent, NXFile file) : base(ptr, parent, file)
+        {
+        }
+
+        public override double Value
+        {
+            get { return (*_nodedata).Type2Data; }
+        }
+    }
+
+    internal sealed unsafe class NXStringNode : NXValuedNode<string>
+    {
+        public NXStringNode(NodeData* ptr, NXNode parent, NXFile file) : base(ptr, parent, file)
+        {
+        }
+
+        public override string Value
+        {
+            get { return _file.GetString((*_nodedata).TypeIDData); }
+        }
+    }
+
+    internal sealed unsafe class NXPointNode : NXValuedNode<Point>
+    {
+        public NXPointNode(NodeData* ptr, NXNode parent, NXFile file) : base(ptr, parent, file)
+        {
+        }
+
+        public override Point Value
+        {
+            get
+            {
+                NodeData nd = *_nodedata; 
+                return new Point(nd.Type4DataX, nd.Type4DataY); 
+            }
         }
     }
 }
