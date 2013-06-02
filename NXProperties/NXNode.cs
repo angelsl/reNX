@@ -42,7 +42,7 @@ namespace reNX.NXProperties
     /// <summary>
     ///     A node containing no value.
     /// </summary>
-    public unsafe class NXNode : IEnumerable<NXNode>
+    public class NXNode : IEnumerable<NXNode>
     {
         private readonly ushort _childCount;
 
@@ -53,18 +53,18 @@ namespace reNX.NXProperties
         /// <summary>
         /// The pointer to the <see cref="NodeData"/> describing this node.
         /// </summary>
-        protected readonly NodeData* _nodedata;
+        protected unsafe readonly NodeData* _nodedata;
 
         private readonly uint _firstChild;
         
         private readonly NXNode _parent;
         private Dictionary<string, NXNode> _children;
 
-        internal NXNode(NodeData* ptr, NXNode parent, NXFile file)
+        internal unsafe NXNode(NodeData* ptr, NXNode parent, NXFile file)
         {
             _nodedata = ptr;
-            _firstChild = (*ptr).FirstChildID;
-            _childCount = (*ptr).ChildCount;
+            _firstChild = ptr->FirstChildID;
+            _childCount = ptr->ChildCount;
             _parent = parent;
             _file = file;
         }
@@ -72,9 +72,9 @@ namespace reNX.NXProperties
         /// <summary>
         ///     The name of this node.
         /// </summary>
-        public string Name
+        public unsafe string Name
         {
-            get { return _file.GetString((*_nodedata).NodeNameID); }
+            get { return _file.GetString(_nodedata->NodeNameID); }
         }
 
         /// <summary>
@@ -190,7 +190,7 @@ namespace reNX.NXProperties
             _children.Add(child.Name, child);
         }
 
-        private void CheckChild()
+        private unsafe void CheckChild()
         {
             if (_children != null || _childCount < 1) return;
             _children = new Dictionary<string, NXNode>(_childCount);
@@ -199,10 +199,10 @@ namespace reNX.NXProperties
                 AddChild(ParseNode(start, this, _file));
         }
 
-        internal static NXNode ParseNode(NodeData* ptr, NXNode parent, NXFile file)
+        internal static unsafe NXNode ParseNode(NodeData* ptr, NXNode parent, NXFile file)
         {
             NXNode ret;
-            switch ((*ptr).Type)
+            switch (ptr->Type)
             {
                 case 0:
                     ret = new NXNode(ptr, parent, file);
@@ -226,7 +226,7 @@ namespace reNX.NXProperties
                     ret = new NXMP3Node(ptr, parent, file);
                     break;
                 default:
-                    return Util.Die<NXNode>(string.Format("NX node has invalid type {0}; dying", (*ptr).Type));
+                    return Util.Die<NXNode>(string.Format("NX node has invalid type {0}; dying", ptr->Type));
             }
 
             if ((file._flags & NXReadSelection.EagerParseFile) == NXReadSelection.EagerParseFile)

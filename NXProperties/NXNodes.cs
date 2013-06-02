@@ -89,15 +89,14 @@ namespace reNX.NXProperties
         {
             if (_file._canvasBlock == (ulong*) 0 ||
                 (_file._flags & NXReadSelection.NeverParseCanvas) == NXReadSelection.NeverParseCanvas) return null;
-            NodeData nd = *_nodedata;
-            var bdata = new byte[nd.Type5Width * nd.Type5Height * 4];
+            var bdata = new byte[_nodedata->Type5Width * _nodedata->Type5Height * 4];
             _gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned);
             IntPtr outBuf = _gcH.AddrOfPinnedObject();
 
-            byte* ptr = _file._start + _file._canvasBlock[nd.TypeIDData] + 4;
+            byte* ptr = _file._start + _file._canvasBlock[_nodedata->TypeIDData] + 4;
             if (Util._is64Bit) Util.EDecompressLZ464(ptr, outBuf, bdata.Length);
             else Util.EDecompressLZ432(ptr, outBuf, bdata.Length);
-            return new Bitmap(nd.Type5Width, nd.Type5Height, 4 * nd.Type5Width, PixelFormat.Format32bppArgb, outBuf);
+            return new Bitmap(_nodedata->Type5Width, _nodedata->Type5Height, 4 * _nodedata->Type5Width, PixelFormat.Format32bppArgb, outBuf);
         }
     }
 
@@ -120,9 +119,8 @@ namespace reNX.NXProperties
         protected override unsafe byte[] LoadValue()
         {
             if (_file._mp3Block == (ulong*) 0) return null;
-            NodeData nd = *_nodedata;
-            var ret = new byte[nd.Type4DataY];
-            Marshal.Copy((IntPtr) (_file._start + _file._mp3Block[nd.TypeIDData]), ret, 0, nd.Type4DataY);
+            var ret = new byte[_nodedata->Type4DataY];
+            Marshal.Copy((IntPtr) (_file._start + _file._mp3Block[_nodedata->TypeIDData]), ret, 0, _nodedata->Type4DataY);
             return ret;
         }
     }
@@ -135,7 +133,7 @@ namespace reNX.NXProperties
 
         public override long Value
         {
-            get { return (*_nodedata).Type1Data; }
+            get { return _nodedata->Type1Data; }
         }
     }
 
@@ -147,7 +145,7 @@ namespace reNX.NXProperties
 
         public override double Value
         {
-            get { return (*_nodedata).Type2Data; }
+            get { return _nodedata->Type2Data; }
         }
     }
 
@@ -159,7 +157,7 @@ namespace reNX.NXProperties
 
         public override string Value
         {
-            get { return _file.GetString((*_nodedata).TypeIDData); }
+            get { return _file.GetString(_nodedata->TypeIDData); }
         }
     }
 
@@ -173,8 +171,7 @@ namespace reNX.NXProperties
         {
             get
             {
-                NodeData nd = *_nodedata; 
-                return new Point(nd.Type4DataX, nd.Type4DataY); 
+                return new Point(_nodedata->Type4DataX, _nodedata->Type4DataY); 
             }
         }
     }
