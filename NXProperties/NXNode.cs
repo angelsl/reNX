@@ -1,6 +1,6 @@
-﻿// reNX is copyright angelsl, 2011 to 2012 inclusive.
+﻿// reNX is copyright angelsl, 2011 to 2013 inclusive.
 // 
-// This file is part of reNX.
+// This file (NXNode.cs) is part of reNX.
 // 
 // reNX is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,9 +26,6 @@
 // choice, provided that you also meet, for each linked independent module,
 // the terms and conditions of the license of that module. An independent
 // module is a module which is not derived from or based on this library.
-// If you modify this library, you may extend this exception to your version
-// of the library, but you are not obligated to do so. If you do not wish to
-// do so, delete this exception statement from your version.
 
 using System;
 using System.Collections;
