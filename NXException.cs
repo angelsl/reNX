@@ -32,15 +32,12 @@
 
 using System;
 
-namespace reNX
-{
+namespace reNX {
     /// <summary>
-    ///   An exception thrown when a parsing error occurs.
+    ///     An exception thrown when a parsing error occurs.
     /// </summary>
     [Serializable]
-    public sealed class NXException : Exception
-    {
-        internal NXException(string message = "", Exception innerException = null) : base(message, innerException)
-        {}
+    public sealed class NXException : Exception {
+        internal NXException(string message = "", Exception innerException = null) : base(message, innerException) {}
     }
 }
