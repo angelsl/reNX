@@ -40,7 +40,7 @@ namespace reNX.NXProperties {
         private GCHandle _gcH;
 
         internal unsafe NXCanvasNode(NodeData* ptr, NXNode parent, NXFile file) : base(ptr, parent, file) {
-            if ((_file._flags & NXReadSelection.EagerParseCanvas) == NXReadSelection.EagerParseCanvas) CheckLoad();
+            if ((_file._flags & NXReadSelection.EagerParseCanvas) == NXReadSelection.EagerParseCanvas) _value = LoadValue();
         }
 
         #region IDisposable Members
@@ -49,16 +49,10 @@ namespace reNX.NXProperties {
         ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         /// <filterpriority>2</filterpriority>
-        public void Dispose() {
-            if (_loaded) {
-                lock (_file._lock) {
-                    if (!_loaded) return;
-                    _loaded = false;
-                    if (_value != null) _value.Dispose();
-                    _value = null;
-                    if (_gcH.IsAllocated) _gcH.Free();
-                }
-            }
+        public void Dispose() {            
+            if (_value != null) _value.Dispose();
+            _value = null;
+            if (_gcH.IsAllocated) _gcH.Free();
         }
 
         #endregion
@@ -96,7 +90,7 @@ namespace reNX.NXProperties {
     /// </summary>
     internal sealed class NXMP3Node : NXLazyValuedNode<byte[]> {
         internal unsafe NXMP3Node(NodeData* ptr, NXNode parent, NXFile file) : base(ptr, parent, file) {
-            if ((_file._flags & NXReadSelection.EagerParseMP3) == NXReadSelection.EagerParseMP3) CheckLoad();
+            if ((_file._flags & NXReadSelection.EagerParseMP3) == NXReadSelection.EagerParseMP3) _value = LoadValue();
         }
 
         /// <summary>

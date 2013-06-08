@@ -46,7 +46,6 @@ namespace reNX {
         private NXNode _baseNode;
 
         internal ulong* _canvasBlock = (ulong*)0;
-        private bool _disposed;
         internal ulong* _mp3Block = (ulong*)0;
         internal NXNode.NodeData* _nodeBlock;
         private BytePointerObject _pointerWrapper;
@@ -81,8 +80,7 @@ namespace reNX {
         /// </summary>
         public NXNode BaseNode {
             get {
-                if (_baseNode != null) return _baseNode;
-                return (_baseNode = NXNode.ParseNode(_nodeBlock, null, this));
+                return _baseNode ?? (_baseNode = NXNode.ParseNode(_nodeBlock, null, this));
             }
         }
 
@@ -92,7 +90,6 @@ namespace reNX {
         ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public void Dispose() {
-            _disposed = true;
             if (_pointerWrapper != null) _pointerWrapper.Dispose();
             _pointerWrapper = null;
             _baseNode = null;
@@ -115,7 +112,6 @@ namespace reNX {
         /// <param name="path"> The path to resolve. </param>
         /// <exception cref="System.Collections.Generic.KeyNotFoundException">The path is invalid.</exception>
         public NXNode ResolvePath(string path) {
-            CheckDisposed();
             return
                 (path.StartsWith("/") ? path.Substring(1) : path).Split('/')
                                                                  .Where(node => node != ".")
@@ -143,10 +139,6 @@ namespace reNX {
             var raw = new byte[*((ushort*)ptr)];
             Marshal.Copy((IntPtr)(ptr + 2), raw, 0, raw.Length);
             return (_strings[id] = Encoding.UTF8.GetString(raw));
-        }
-
-        internal void CheckDisposed() {
-            if (_disposed) throw new ObjectDisposedException("NX file");
         }
 
         #region Nested type: HeaderData
