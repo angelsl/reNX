@@ -43,15 +43,14 @@ namespace reNX {
         internal readonly object _lock = new object();
 
         internal readonly byte* _start;
-        private BytePointerObject _pointerWrapper;
-        
+        private NXNode _baseNode;
+
         internal ulong* _canvasBlock = (ulong*)0;
         internal ulong* _mp3Block = (ulong*)0;
+        internal NXNode.NodeData* _nodeBlock;
+        private BytePointerObject _pointerWrapper;
         private ulong* _stringBlock;
-        internal NXNode.NodeData* _nodeBlock;               
         private string[] _strings;
-
-        private NXNode _baseNode;
 
         /// <summary>
         ///     Creates and loads a NX file from a path.
@@ -79,9 +78,7 @@ namespace reNX {
         ///     The base node of this NX file.
         /// </summary>
         public NXNode BaseNode {
-            get {
-                return _baseNode ?? (_baseNode = NXNode.ParseNode(_nodeBlock, null, this));
-            }
+            get { return _baseNode ?? (_baseNode = NXNode.ParseNode(_nodeBlock, null, this)); }
         }
 
         #region IDisposable Members

@@ -49,7 +49,7 @@ namespace reNX.NXProperties {
         ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         /// <filterpriority>2</filterpriority>
-        public void Dispose() {            
+        public void Dispose() {
             if (_value != null) _value.Dispose();
             _value = null;
             if (_gcH.IsAllocated) _gcH.Free();
