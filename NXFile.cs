@@ -214,10 +214,10 @@ namespace reNX {
             throw new NXException(cause);
         }
 
-        [DllImport("lz4_32", EntryPoint = "LZ4_uncompress")]
+        [DllImport("lz4_32", EntryPoint = "LZ4_decompress_fast")]
         internal static extern unsafe int EDecompressLZ432(byte* source, IntPtr dest, int outputLen);
 
-        [DllImport("lz4_64", EntryPoint = "LZ4_uncompress")]
+        [DllImport("lz4_64", EntryPoint = "LZ4_decompress_fast")]
         internal static extern unsafe int EDecompressLZ464(byte* source, IntPtr dest, int outputLen);
     }
 }
