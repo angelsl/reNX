@@ -166,7 +166,7 @@ namespace reNX.NXProperties {
             var childCount = _nodeData->ChildCount;
             if (_children != null || childCount < 1) return;
             _children = new Dictionary<string, NXNode>(childCount);
-            NodeData* start = _file._nodeBlock + _nodeData->FirstChildID;
+            NodeData* start = (NXNode.NodeData*)(_file._start + ((NXFile.HeaderData*)_file._start)->NodeBlock) + _nodeData->FirstChildID;
             for (ushort i = 0; i < childCount; ++i, ++start) AddChild(ParseNode(start, this, _file));
         }
 
@@ -266,6 +266,7 @@ namespace reNX.NXProperties {
         /// </summary>
         public override T Value {
             get {
+                lock(_file._lock)
                 return _value ?? (_value = LoadValue());
             }
         }

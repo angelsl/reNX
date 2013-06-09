@@ -39,18 +39,11 @@ namespace reNX {
     ///     An NX file.
     /// </summary>
     public sealed unsafe class NXFile : IDisposable {
-        internal readonly NXReadSelection _flags;
-        internal readonly object _lock = new object();
-
+        internal NXReadSelection _flags;
         internal readonly byte* _start;
+        internal readonly object _lock = new object();
         private NXNode _baseNode;
-
-        internal ulong* _canvasBlock = (ulong*)0;
-        internal ulong* _mp3Block = (ulong*)0;
-        internal NXNode.NodeData* _nodeBlock;
         private BytePointerObject _pointerWrapper;
-        private ulong* _stringBlock;
-
         private string[] _strings;
 
         /// <summary>
@@ -80,7 +73,7 @@ namespace reNX {
         /// </summary>
         public NXNode BaseNode {
             get {
-                return _baseNode ?? (_baseNode = NXNode.ParseNode(_nodeBlock, null, this));
+                return _baseNode ?? (_baseNode = NXNode.ParseNode((NXNode.NodeData*)(_start + ((HeaderData*)_start)->NodeBlock), null, this));
             }
         }
 
@@ -123,19 +116,16 @@ namespace reNX {
         }
 
         private void Parse() {
-            HeaderData hd = *((HeaderData*)_start);
-            if (hd.PKG3 != 0x34474B50) Util.Die("NX file has invalid header; invalid magic");
-            _nodeBlock = (NXNode.NodeData*)(_start + hd.NodeBlock);
-            _stringBlock = (ulong*)(_start + hd.StringBlock);
-            _strings = new string[hd.StringCount];
+            if (((HeaderData*)_start)->PKG3 != 0x34474B50) Util.Die("NX file has invalid header; invalid magic");
+            _strings = new string[((HeaderData*)_start)->StringCount];
 
-            if (hd.BitmapCount > 0) _canvasBlock = (ulong*)(_start + hd.BitmapBlock);
-            if (hd.SoundCount > 0) _mp3Block = (ulong*)(_start + hd.SoundBlock);
+            if (((HeaderData*)_start)->BitmapCount == 0) _flags |= NXReadSelection.NeverParseCanvas;
+            if (((HeaderData*)_start)->SoundCount == 0) _flags |= NXReadSelection.NeverParseMP3;
         }
 
         internal string GetString(uint id) {
             if (_strings[id] != null) return _strings[id];
-            byte* ptr = _start + _stringBlock[id];
+            byte* ptr = _start + ((ulong*)(_start + ((HeaderData*)_start)->StringBlock))[id];
             var raw = new byte[*((ushort*)ptr)];
             Marshal.Copy((IntPtr)(ptr + 2), raw, 0, raw.Length);
             return (_strings[id] = Encoding.UTF8.GetString(raw));
@@ -144,7 +134,7 @@ namespace reNX {
         #region Nested type: HeaderData
 
         [StructLayout(LayoutKind.Explicit, Pack = 4, Size = 52)]
-        private struct HeaderData {
+        internal struct HeaderData {
             [FieldOffset(0)] public readonly uint PKG3;
 
             [FieldOffset(8)] public readonly long NodeBlock;
@@ -176,11 +166,6 @@ namespace reNX {
         None = 0,
 
         /// <summary>
-        ///     Set this flag to disable lazy loading of string properties.
-        /// </summary>
-        EagerParseStrings = 1,
-
-        /// <summary>
         ///     Set this flag to disable lazy loading of MP3 properties.
         /// </summary>
         EagerParseMP3 = 2,
@@ -191,9 +176,14 @@ namespace reNX {
         EagerParseCanvas = 4,
 
         /// <summary>
+        ///     Set this flag to completely disable loading of MP3 properties. This takes precedence over EagerParseMP3.
+        /// </summary>
+        NeverParseMP3 = 8,
+
+        /// <summary>
         ///     Set this flag to completely disable loading of canvas properties. This takes precedence over EagerParseCanvas.
         /// </summary>
-        NeverParseCanvas = 8,
+        NeverParseCanvas = 16,
 
         /// <summary>
         ///     Set this flag to disable lazy loading of nodes (construct all nodes immediately).
@@ -203,7 +193,7 @@ namespace reNX {
         /// <summary>
         ///     Set this flag to disable lazy loading of string, MP3 and canvas properties.
         /// </summary>
-        EagerParseAllProperties = EagerParseCanvas | EagerParseMP3 | EagerParseStrings,
+        EagerParseAllProperties = EagerParseCanvas | EagerParseMP3
     }
 
     internal static class Util {
