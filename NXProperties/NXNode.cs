@@ -75,7 +75,9 @@ namespace reNX.NXProperties {
         ///     The file containing this node.
         /// </summary>
         public NXFile File {
-            get { return _file; }
+            get {
+                return _file;
+            }
         }
 
         /// <summary>
@@ -83,7 +85,9 @@ namespace reNX.NXProperties {
         /// </summary>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
         public unsafe int ChildCount {
-            get { return _nodeData->ChildCount; }
+            get {
+                return _nodeData->ChildCount;
+            }
         }
 
         /// <summary>
@@ -159,11 +163,10 @@ namespace reNX.NXProperties {
         }
 
         private unsafe void CheckChild() {
-            ushort childCount = _nodeData->ChildCount;
+            var childCount = _nodeData->ChildCount;
             if (_children != null || childCount < 1) return;
             _children = new Dictionary<string, NXNode>(childCount);
-            NodeData* start = (NodeData*)(_file._start + ((NXFile.HeaderData*)_file._start)->NodeBlock) +
-                              _nodeData->FirstChildID;
+            NodeData* start = _file._nodeBlock + _nodeData->FirstChildID;
             for (ushort i = 0; i < childCount; ++i, ++start) AddChild(ParseNode(start, this, _file));
         }
 
@@ -262,7 +265,9 @@ namespace reNX.NXProperties {
         ///     The value contained by this node. If the value has not been loaded, the value will be loaded.
         /// </summary>
         public override T Value {
-            get { lock (_file._lock) return _value ?? (_value = LoadValue()); }
+            get {
+                lock(_file._lock) return _value ?? (_value = LoadValue());
+            }
         }
 
         /// <summary>
