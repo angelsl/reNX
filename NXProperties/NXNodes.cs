@@ -49,7 +49,7 @@ namespace reNX.NXProperties {
         ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         /// <filterpriority>2</filterpriority>
-        public void Dispose() {            
+        public void Dispose() {
             if (_value != null) _value.Dispose();
             _value = null;
             if (_gcH.IsAllocated) _gcH.Free();
@@ -75,7 +75,9 @@ namespace reNX.NXProperties {
             var bdata = new byte[_nodeData->Type5Width*_nodeData->Type5Height*4];
             IntPtr outBuf = (_gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned)).AddrOfPinnedObject();
 
-            byte* ptr = _file._start + ((ulong*)(_file._start + ((NXFile.HeaderData*)_file._start)->BitmapBlock))[_nodeData->TypeIDData] + 4;
+            byte* ptr = _file._start +
+                        ((ulong*)(_file._start + ((NXFile.HeaderData*)_file._start)->BitmapBlock))[_nodeData->TypeIDData
+                            ] + 4;
             if (Util._is64Bit) Util.EDecompressLZ464(ptr, outBuf, bdata.Length);
             else Util.EDecompressLZ432(ptr, outBuf, bdata.Length);
             return new Bitmap(_nodeData->Type5Width, _nodeData->Type5Height, 4*_nodeData->Type5Width,
@@ -98,7 +100,11 @@ namespace reNX.NXProperties {
         protected override unsafe byte[] LoadValue() {
             if ((_file._flags & NXReadSelection.NeverParseMP3) == NXReadSelection.NeverParseMP3) return null;
             var ret = new byte[_nodeData->Type4DataY];
-            Marshal.Copy((IntPtr)(_file._start + ((ulong*)(_file._start + ((NXFile.HeaderData*)_file._start)->SoundBlock))[_nodeData->TypeIDData]), ret, 0, _nodeData->Type4DataY);
+            Marshal.Copy(
+                (IntPtr)
+                (_file._start +
+                 ((ulong*)(_file._start + ((NXFile.HeaderData*)_file._start)->SoundBlock))[_nodeData->TypeIDData]), ret,
+                0, _nodeData->Type4DataY);
             return ret;
         }
     }

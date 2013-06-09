@@ -39,10 +39,10 @@ namespace reNX {
     ///     An NX file.
     /// </summary>
     public sealed unsafe class NXFile : IDisposable {
-        internal NXReadSelection _flags;
-        internal readonly byte* _start;
         internal readonly object _lock = new object();
+        internal readonly byte* _start;
         private NXNode _baseNode;
+        internal NXReadSelection _flags;
         private BytePointerObject _pointerWrapper;
         private string[] _strings;
 
@@ -73,7 +73,9 @@ namespace reNX {
         /// </summary>
         public NXNode BaseNode {
             get {
-                return _baseNode ?? (_baseNode = NXNode.ParseNode((NXNode.NodeData*)(_start + ((HeaderData*)_start)->NodeBlock), null, this));
+                return _baseNode ??
+                       (_baseNode =
+                        NXNode.ParseNode((NXNode.NodeData*)(_start + ((HeaderData*)_start)->NodeBlock), null, this));
             }
         }
 
