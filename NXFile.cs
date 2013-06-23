@@ -43,7 +43,7 @@ namespace reNX {
         internal readonly object _lock = new object();
 
         internal readonly byte* _start;
-        private NXNode _baseNode;
+        internal NXNode[] _nodes;
 
         internal ulong* _canvasBlock = (ulong*)0;
         internal ulong* _mp3Block = (ulong*)0;
@@ -78,7 +78,7 @@ namespace reNX {
         ///     The base node of this NX file.
         /// </summary>
         public NXNode BaseNode {
-            get { return _baseNode ?? (_baseNode = NXNode.ParseNode(_nodeBlock, null, this)); }
+            get { return _nodes[0] ?? (_nodes[0] = NXNode.ParseNode(_nodeBlock, null, this)); }
         }
 
         #region IDisposable Members
@@ -89,7 +89,7 @@ namespace reNX {
         public void Dispose() {
             if (_pointerWrapper != null) _pointerWrapper.Dispose();
             _pointerWrapper = null;
-            _baseNode = null;
+            _nodes = null;
             _strings = null;
             GC.SuppressFinalize(this);
         }
@@ -114,15 +114,14 @@ namespace reNX {
                                                                  .Where(node => node != ".")
                                                                  .Aggregate(BaseNode,
                                                                             (current, node) =>
-                                                                            node == ".."
-                                                                                ? current.Parent
-                                                                                : current[node]);
+                                                                            current[node]);
         }
 
         private void Parse() {
             HeaderData hd = *((HeaderData*)_start);
             if (hd.PKG3 != 0x34474B50) Util.Die("NX file has invalid header; invalid magic");
             _nodeBlock = (NXNode.NodeData*)(_start + hd.NodeBlock);
+            _nodes = new NXNode[hd.NodeCount];
             _stringBlock = (ulong*)(_start + hd.StringBlock);
             _strings = new string[hd.StringCount];
 
@@ -143,6 +142,8 @@ namespace reNX {
         [StructLayout(LayoutKind.Explicit, Pack = 4, Size = 52)]
         private struct HeaderData {
             [FieldOffset(0)] public readonly uint PKG3;
+
+            [FieldOffset(4)] public readonly uint NodeCount;
 
             [FieldOffset(8)] public readonly long NodeBlock;
 

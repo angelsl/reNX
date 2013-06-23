@@ -38,6 +38,35 @@ namespace reNX.NXProperties {
     ///     A node containing no value.
     /// </summary>
     public class NXNode : IEnumerable<NXNode> {
+
+        private class ChildEnumerator : IEnumerator<NXNode> {
+
+            private int _id = -1;
+            private NXNode _node;
+
+            public void Dispose() {
+            }
+
+            public unsafe bool MoveNext() {
+                ++_id;
+                return _id > -1 && _id < _node._nodeData->ChildCount;
+            }
+
+            public void Reset() {
+                _id = -1;
+            }
+
+            public unsafe NXNode Current { get { return _node._file._nodes[_node._nodeData->FirstChildID + _id]; } }
+
+            object IEnumerator.Current {
+                get { return Current; }
+            }
+
+            public ChildEnumerator(NXNode n) {
+                _node = n;
+            }
+        }
+
         /// <summary>
         ///     The NX file containing this node.
         /// </summary>
@@ -48,13 +77,13 @@ namespace reNX.NXProperties {
         /// </summary>
         protected readonly unsafe NodeData* _nodeData;
 
-        private readonly NXNode _parent;
         private Dictionary<string, NXNode> _children;
+        private bool _childinit;
 
-        internal unsafe NXNode(NodeData* ptr, NXNode parent, NXFile file) {
+        internal unsafe NXNode(NodeData* ptr, NXFile file) {
             _nodeData = ptr;
-            _parent = parent;
             _file = file;
+            _childinit = _nodeData->ChildCount == 0;
         }
 
         /// <summary>
@@ -62,13 +91,6 @@ namespace reNX.NXProperties {
         /// </summary>
         public unsafe string Name {
             get { return _file.GetString(_nodeData->NodeNameID); }
-        }
-
-        /// <summary>
-        ///     The parent node of this node, that is, the node containing this node as a child.
-        /// </summary>
-        public NXNode Parent {
-            get { return _parent; }
         }
 
         /// <summary>
@@ -99,7 +121,7 @@ namespace reNX.NXProperties {
         /// </exception>
         public unsafe NXNode this[string name] {
             get {
-                if (_nodeData->ChildCount > 0 && _children == null) CheckChild();
+                if (_nodeData->ChildCount > 0 && _children == null) CheckChild(!_childinit, true);
                 return _children == null ? null : _children[name];
             }
         }
@@ -114,9 +136,9 @@ namespace reNX.NXProperties {
         /// </returns>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
         /// <filterpriority>1</filterpriority>
-        public unsafe IEnumerator<NXNode> GetEnumerator() {
-            if (_nodeData->ChildCount > 0 && _children == null) CheckChild();
-            return _children == null ? Enumerable.Empty<NXNode>().GetEnumerator() : _children.Values.GetEnumerator();
+        public IEnumerator<NXNode> GetEnumerator() {
+            if (!_childinit) CheckChild();
+            return new ChildEnumerator(this);
         }
 
         /// <summary>
@@ -140,7 +162,7 @@ namespace reNX.NXProperties {
         /// <returns> true if this node contains a child with the specified name; false otherwise </returns>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
         public unsafe bool ContainsChild(string name) {
-            if (_nodeData->ChildCount > 0 && _children == null) CheckChild();
+            if (_nodeData->ChildCount > 0 && _children == null) CheckChild(!_childinit, true);
             return _children != null && _children.ContainsKey(name);
         }
 
@@ -158,37 +180,55 @@ namespace reNX.NXProperties {
             _children.Add(child.Name, child);
         }
 
-        private unsafe void CheckChild() {
-            ushort childCount = _nodeData->ChildCount;
-            if (_children != null || childCount < 1) return;
-            _children = new Dictionary<string, NXNode>(childCount);
+        private unsafe void CheckChild(bool parse = true, bool map = false) {
+            // ugly code begins here
             NodeData* start = _file._nodeBlock + _nodeData->FirstChildID;
-            for (ushort i = 0; i < childCount; ++i, ++start) AddChild(ParseNode(start, this, _file));
+            long end = _nodeData->ChildCount + _nodeData->FirstChildID;
+            
+            switch ((parse ? 1 : 0) | (map ? 2 : 0)) {
+                case 1:
+                    for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start) _file._nodes[i] = ParseNode(start, this, _file);
+                    _childinit = true;
+                    break;
+                case 2:
+                    _children = new Dictionary<string, NXNode>(_nodeData->ChildCount);
+                    for (uint i = _nodeData->FirstChildID; i < end; ++i) AddChild(_file._nodes[i]);
+                    break;
+                case 3:
+                    _children = new Dictionary<string, NXNode>(_nodeData->ChildCount);
+                    for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start) AddChild(_file._nodes[i] = ParseNode(start, this, _file));
+                    _childinit = true;
+                    break;
+                default:
+                    Util.Die("This should never happen; CheckChild");
+                    break;
+            }
+            // ugly code ends here
         }
 
         internal static unsafe NXNode ParseNode(NodeData* ptr, NXNode parent, NXFile file) {
             NXNode ret;
             switch (ptr->Type) {
                 case 0:
-                    ret = new NXNode(ptr, parent, file);
+                    ret = new NXNode(ptr, file);
                     break;
                 case 1:
-                    ret = new NXInt64Node(ptr, parent, file);
+                    ret = new NXInt64Node(ptr, file);
                     break;
                 case 2:
-                    ret = new NXDoubleNode(ptr, parent, file);
+                    ret = new NXDoubleNode(ptr, file);
                     break;
                 case 3:
-                    ret = new NXStringNode(ptr, parent, file);
+                    ret = new NXStringNode(ptr, file);
                     break;
                 case 4:
-                    ret = new NXPointNode(ptr, parent, file);
+                    ret = new NXPointNode(ptr, file);
                     break;
                 case 5:
-                    ret = new NXCanvasNode(ptr, parent, file);
+                    ret = new NXCanvasNode(ptr, file);
                     break;
                 case 6:
-                    ret = new NXMP3Node(ptr, parent, file);
+                    ret = new NXMP3Node(ptr, file);
                     break;
                 default:
                     return Util.Die<NXNode>(string.Format("NX node has invalid type {0}; dying", ptr->Type));
@@ -237,7 +277,7 @@ namespace reNX.NXProperties {
     /// </summary>
     /// <typeparam name="T"> The type of the contained value. </typeparam>
     public abstract class NXValuedNode<T> : NXNode {
-        internal unsafe NXValuedNode(NodeData* ptr, NXNode parent, NXFile file) : base(ptr, parent, file) {}
+        internal unsafe NXValuedNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
         /// <summary>
         ///     The value contained by this node.
@@ -255,7 +295,7 @@ namespace reNX.NXProperties {
         /// </summary>
         protected T _value;
 
-        internal unsafe NXLazyValuedNode(NodeData* ptr, NXNode parent, NXFile file) : base(ptr, parent, file) {}
+        internal unsafe NXLazyValuedNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
         /// <summary>
         ///     The value contained by this node. If the value has not been loaded, the value will be loaded.

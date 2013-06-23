@@ -39,7 +39,7 @@ namespace reNX.NXProperties {
     public sealed class NXCanvasNode : NXLazyValuedNode<Bitmap>, IDisposable {
         private GCHandle _gcH;
 
-        internal unsafe NXCanvasNode(NodeData* ptr, NXNode parent, NXFile file) : base(ptr, parent, file) {
+        internal unsafe NXCanvasNode(NodeData* ptr, NXFile file) : base(ptr, file) {
             if ((_file._flags & NXReadSelection.EagerParseCanvas) == NXReadSelection.EagerParseCanvas) _value = LoadValue();
         }
 
@@ -89,7 +89,7 @@ namespace reNX.NXProperties {
     ///     An optionally lazily-loaded canvas node, containing an MP3 file in a byte array.
     /// </summary>
     internal sealed class NXMP3Node : NXLazyValuedNode<byte[]> {
-        internal unsafe NXMP3Node(NodeData* ptr, NXNode parent, NXFile file) : base(ptr, parent, file) {
+        internal unsafe NXMP3Node(NodeData* ptr, NXFile file) : base(ptr, file) {
             if ((_file._flags & NXReadSelection.EagerParseMP3) == NXReadSelection.EagerParseMP3) _value = LoadValue();
         }
 
@@ -106,7 +106,7 @@ namespace reNX.NXProperties {
     }
 
     internal sealed unsafe class NXInt64Node : NXValuedNode<long> {
-        public NXInt64Node(NodeData* ptr, NXNode parent, NXFile file) : base(ptr, parent, file) {}
+        public NXInt64Node(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
         public override long Value {
             get { return _nodeData->Type1Data; }
@@ -114,7 +114,7 @@ namespace reNX.NXProperties {
     }
 
     internal sealed unsafe class NXDoubleNode : NXValuedNode<double> {
-        public NXDoubleNode(NodeData* ptr, NXNode parent, NXFile file) : base(ptr, parent, file) {}
+        public NXDoubleNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
         public override double Value {
             get { return _nodeData->Type2Data; }
@@ -122,7 +122,7 @@ namespace reNX.NXProperties {
     }
 
     internal sealed unsafe class NXStringNode : NXValuedNode<string> {
-        public NXStringNode(NodeData* ptr, NXNode parent, NXFile file) : base(ptr, parent, file) {}
+        public NXStringNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
         public override string Value {
             get { return _file.GetString(_nodeData->TypeIDData); }
@@ -130,7 +130,7 @@ namespace reNX.NXProperties {
     }
 
     internal sealed unsafe class NXPointNode : NXValuedNode<Point> {
-        public NXPointNode(NodeData* ptr, NXNode parent, NXFile file) : base(ptr, parent, file) {}
+        public NXPointNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
         public override Point Value {
             get { return new Point(_nodeData->Type4DataX, _nodeData->Type4DataY); }
