@@ -225,10 +225,10 @@ namespace reNX.NXProperties {
                     ret = new NXPointNode(ptr, file);
                     break;
                 case 5:
-                    ret = new NXCanvasNode(ptr, file);
+                    ret = new NXBitmapNode(ptr, file);
                     break;
                 case 6:
-                    ret = new NXMP3Node(ptr, file);
+                    ret = new NXAudioNode(ptr, file);
                     break;
                 default:
                     return Util.Die<NXNode>(string.Format("NX node has invalid type {0}; dying", ptr->Type));

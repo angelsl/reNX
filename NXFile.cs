@@ -45,7 +45,7 @@ namespace reNX {
         internal readonly byte* _start;
         internal NXNode[] _nodes;
 
-        internal ulong* _canvasBlock = (ulong*)0;
+        internal ulong* _bitmapBlock = (ulong*)0;
         internal ulong* _mp3Block = (ulong*)0;
         internal NXNode.NodeData* _nodeBlock;
         private BytePointerObject _pointerWrapper;
@@ -125,7 +125,7 @@ namespace reNX {
             _stringBlock = (ulong*)(_start + hd.StringBlock);
             _strings = new string[hd.StringCount];
 
-            if (hd.BitmapCount > 0) _canvasBlock = (ulong*)(_start + hd.BitmapBlock);
+            if (hd.BitmapCount > 0) _bitmapBlock = (ulong*)(_start + hd.BitmapBlock);
             if (hd.SoundCount > 0) _mp3Block = (ulong*)(_start + hd.SoundBlock);
         }
 
@@ -169,7 +169,7 @@ namespace reNX {
     [Flags]
     public enum NXReadSelection : byte {
         /// <summary>
-        ///     No flags are enabled, that is, lazy loading of string, MP3 and canvas properties is enabled. This is default.
+        ///     No flags are enabled, that is, lazy loading of string, audio and bitmap properties is enabled. This is default.
         /// </summary>
         None = 0,
 
@@ -179,19 +179,19 @@ namespace reNX {
         EagerParseStrings = 1,
 
         /// <summary>
-        ///     Set this flag to disable lazy loading of MP3 properties.
+        ///     Set this flag to disable lazy loading of audio properties.
         /// </summary>
-        EagerParseMP3 = 2,
+        EagerParseAudio = 2,
 
         /// <summary>
-        ///     Set this flag to disable lazy loading of canvas properties.
+        ///     Set this flag to disable lazy loading of bitmap properties.
         /// </summary>
-        EagerParseCanvas = 4,
+        EagerParseBitmap = 4,
 
         /// <summary>
-        ///     Set this flag to completely disable loading of canvas properties. This takes precedence over EagerParseCanvas.
+        ///     Set this flag to completely disable loading of bitmap properties. This takes precedence over EagerParseBitmap.
         /// </summary>
-        NeverParseCanvas = 8,
+        NeverParseBitmap = 8,
 
         /// <summary>
         ///     Set this flag to disable lazy loading of nodes (construct all nodes immediately).
@@ -199,9 +199,9 @@ namespace reNX {
         EagerParseFile = 32,
 
         /// <summary>
-        ///     Set this flag to disable lazy loading of string, MP3 and canvas properties.
+        ///     Set this flag to disable lazy loading of string, audio and bitmap properties.
         /// </summary>
-        EagerParseAllProperties = EagerParseCanvas | EagerParseMP3 | EagerParseStrings,
+        EagerParseAllProperties = EagerParseBitmap | EagerParseAudio | EagerParseStrings,
     }
 
     internal static class Util {

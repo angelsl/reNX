@@ -34,13 +34,13 @@ using System.Runtime.InteropServices;
 
 namespace reNX.NXProperties {
     /// <summary>
-    ///     An optionally lazily-loaded canvas node, containing a bitmap.
+    ///     An optionally lazily-loaded bitmap node, containing a bitmap.
     /// </summary>
-    public sealed class NXCanvasNode : NXLazyValuedNode<Bitmap>, IDisposable {
+    public sealed class NXBitmapNode : NXLazyValuedNode<Bitmap>, IDisposable {
         private GCHandle _gcH;
 
-        internal unsafe NXCanvasNode(NodeData* ptr, NXFile file) : base(ptr, file) {
-            if ((_file._flags & NXReadSelection.EagerParseCanvas) == NXReadSelection.EagerParseCanvas) _value = LoadValue();
+        internal unsafe NXBitmapNode(NodeData* ptr, NXFile file) : base(ptr, file) {
+            if ((_file._flags & NXReadSelection.EagerParseBitmap) == NXReadSelection.EagerParseBitmap) _value = LoadValue();
         }
 
         #region IDisposable Members
@@ -60,24 +60,24 @@ namespace reNX.NXProperties {
         /// <summary>
         ///     Destructor.
         /// </summary>
-        ~NXCanvasNode() {
+        ~NXBitmapNode() {
             Dispose();
         }
 
         /// <summary>
-        ///     Loads the canvas into memory.
+        ///     Loads the bitmap into memory.
         /// </summary>
         /// <returns>
-        ///     The canvas, as a <see cref="Bitmap" />
+        ///     The bitmap, as a <see cref="Bitmap" />
         /// </returns>
         protected override unsafe Bitmap LoadValue() {
-            if (_file._canvasBlock == (ulong*)0 ||
-                (_file._flags & NXReadSelection.NeverParseCanvas) == NXReadSelection.NeverParseCanvas) return null;
+            if (_file._bitmapBlock == (ulong*)0 ||
+                (_file._flags & NXReadSelection.NeverParseBitmap) == NXReadSelection.NeverParseBitmap) return null;
             var bdata = new byte[_nodeData->Type5Width*_nodeData->Type5Height*4];
             _gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned);
             IntPtr outBuf = _gcH.AddrOfPinnedObject();
 
-            byte* ptr = _file._start + _file._canvasBlock[_nodeData->TypeIDData] + 4;
+            byte* ptr = _file._start + _file._bitmapBlock[_nodeData->TypeIDData] + 4;
             if (Util._is64Bit) Util.EDecompressLZ464(ptr, outBuf, bdata.Length);
             else Util.EDecompressLZ432(ptr, outBuf, bdata.Length);
             return new Bitmap(_nodeData->Type5Width, _nodeData->Type5Height, 4*_nodeData->Type5Width,
@@ -86,17 +86,17 @@ namespace reNX.NXProperties {
     }
 
     /// <summary>
-    ///     An optionally lazily-loaded canvas node, containing an MP3 file in a byte array.
+    ///     An optionally lazily-loaded audio node, containing an audio file in a byte array.
     /// </summary>
-    internal sealed class NXMP3Node : NXLazyValuedNode<byte[]> {
-        internal unsafe NXMP3Node(NodeData* ptr, NXFile file) : base(ptr, file) {
-            if ((_file._flags & NXReadSelection.EagerParseMP3) == NXReadSelection.EagerParseMP3) _value = LoadValue();
+    internal sealed class NXAudioNode : NXLazyValuedNode<byte[]> {
+        internal unsafe NXAudioNode(NodeData* ptr, NXFile file) : base(ptr, file) {
+            if ((_file._flags & NXReadSelection.EagerParseAudio) == NXReadSelection.EagerParseAudio) _value = LoadValue();
         }
 
         /// <summary>
-        ///     Loads the MP3 into memory.
+        ///     Loads the audio file into memory.
         /// </summary>
-        /// <returns> The MP3, as a byte array. </returns>
+        /// <returns> The audio file, as a byte array. </returns>
         protected override unsafe byte[] LoadValue() {
             if (_file._mp3Block == (ulong*)0) return null;
             var ret = new byte[_nodeData->Type4DataY];
