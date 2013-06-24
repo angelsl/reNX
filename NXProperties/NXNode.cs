@@ -187,7 +187,7 @@ namespace reNX.NXProperties {
             
             switch ((parse ? 1 : 0) | (map ? 2 : 0)) {
                 case 1:
-                    for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start) _file._nodes[i] = ParseNode(start, this, _file);
+                    for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start) if(_file._nodes[i] == null) _file._nodes[i] = ParseNode(start, this, _file);
                     _childinit = true;
                     break;
                 case 2:
@@ -196,7 +196,9 @@ namespace reNX.NXProperties {
                     break;
                 case 3:
                     _children = new Dictionary<string, NXNode>(_nodeData->ChildCount);
-                    for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start) AddChild(_file._nodes[i] = ParseNode(start, this, _file));
+                    for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start)
+                        if (_file._nodes[i] == null) AddChild(_file._nodes[i] = ParseNode(start, this, _file));
+                        else AddChild(_file._nodes[i]);
                     _childinit = true;
                     break;
                 default:
