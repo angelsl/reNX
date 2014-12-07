@@ -35,11 +35,11 @@ using System.Runtime.InteropServices;
 // associated with an assembly.
 
 [assembly: AssemblyTitle("reNX")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("reNX, a C# library for reading NX files.")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("angelsl")]
 [assembly: AssemblyProduct("reNX")]
-[assembly: AssemblyCopyright("Copyright © angelsl 2012")]
+[assembly: AssemblyCopyright("Copyright © angelsl 2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -64,5 +64,5 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.1.8.0")]
+[assembly: AssemblyFileVersion("1.1.8.0")]
