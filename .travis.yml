@@ -13,4 +13,9 @@ script:
 
 notifications:
   email: false
-  irc: "irc.fyrechat.net#vana-commits"
+  irc:
+    channels:
+     - "irc.fyrechat.net#vana-commits"
+    skip_join: true
+    template:
+      - "%{repository}#%{build_number} (%{branch} - %{commit} - %{author}): %{message}"
