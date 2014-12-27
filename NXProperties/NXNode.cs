@@ -32,6 +32,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace reNX.NXProperties {
     /// <summary>
@@ -291,7 +292,7 @@ namespace reNX.NXProperties {
     ///     A node containing a lazily-loaded value of type <typeparamref name="T" />.
     /// </summary>
     /// <typeparam name="T"> The type of the contained lazily-loaded value. </typeparam>
-    public abstract class NXLazyValuedNode<T> : NXValuedNode<T> where T : class {
+    internal abstract class NXLazyValuedNode<T> : NXValuedNode<T> where T : class {
         /// <summary>
         ///     The value contained in this lazily-loaded node.
         /// </summary>
@@ -303,7 +304,10 @@ namespace reNX.NXProperties {
         ///     The value contained by this node. If the value has not been loaded, the value will be loaded.
         /// </summary>
         public override T Value {
-            get { lock (_file._lock) return _value ?? (_value = LoadValue()); }
+            get {
+                if (_value == null) Interlocked.CompareExchange(ref _value, LoadValue(), null);
+                return _value;
+            }
         }
 
         /// <summary>

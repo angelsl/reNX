@@ -40,7 +40,6 @@ namespace reNX {
     /// </summary>
     public sealed unsafe class NXFile : IDisposable {
         internal readonly NXReadSelection _flags;
-        internal readonly object _lock = new object();
 
         internal readonly byte* _start;
         internal NXNode[] _nodes;

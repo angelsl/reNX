@@ -36,32 +36,9 @@ namespace reNX.NXProperties {
     /// <summary>
     ///     An optionally lazily-loaded bitmap node, containing a bitmap.
     /// </summary>
-    public sealed class NXBitmapNode : NXLazyValuedNode<Bitmap>, IDisposable {
-        private GCHandle _gcH;
-
+    internal sealed class NXBitmapNode : NXLazyValuedNode<Bitmap> {
         internal unsafe NXBitmapNode(NodeData* ptr, NXFile file) : base(ptr, file) {
             if ((_file._flags & NXReadSelection.EagerParseBitmap) == NXReadSelection.EagerParseBitmap) _value = LoadValue();
-        }
-
-        #region IDisposable Members
-
-        /// <summary>
-        ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        /// <filterpriority>2</filterpriority>
-        public void Dispose() {
-            if (_value != null) _value.Dispose();
-            _value = null;
-            if (_gcH.IsAllocated) _gcH.Free();
-        }
-
-        #endregion
-
-        /// <summary>
-        ///     Destructor.
-        /// </summary>
-        ~NXBitmapNode() {
-            Dispose();
         }
 
         /// <summary>
@@ -74,15 +51,20 @@ namespace reNX.NXProperties {
             if (_file._bitmapBlock == (ulong*)0 ||
                 (_file._flags & NXReadSelection.NeverParseBitmap) == NXReadSelection.NeverParseBitmap) return null;
             var bdata = new byte[_nodeData->Type5Width*_nodeData->Type5Height*4];
-            _gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned);
-            IntPtr outBuf = _gcH.AddrOfPinnedObject();
-
-            byte* ptr = _file._start + _file._bitmapBlock[_nodeData->TypeIDData] + 4;
-            if (Util._is64Bit) Util.EDecompressLZ464(ptr, outBuf, bdata.Length);
-            else Util.EDecompressLZ432(ptr, outBuf, bdata.Length);
-            return new Bitmap(_nodeData->Type5Width, _nodeData->Type5Height, 4*_nodeData->Type5Width,
-                              PixelFormat.Format32bppArgb, outBuf);
+            GCHandle gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned);
+            try {
+                IntPtr outBuf = gcH.AddrOfPinnedObject();
+                byte* ptr = _file._start + _file._bitmapBlock[_nodeData->TypeIDData] + 4;
+                if (Util._is64Bit) Util.EDecompressLZ464(ptr, outBuf, bdata.Length);
+                else Util.EDecompressLZ432(ptr, outBuf, bdata.Length);
+                using (Bitmap b = new Bitmap(_nodeData->Type5Width, _nodeData->Type5Height, 4*_nodeData->Type5Width,
+                    PixelFormat.Format32bppArgb, outBuf))
+                    return new Bitmap(b);
+            } finally {
+                gcH.Free();
+            }
         }
+
     }
 
     /// <summary>
