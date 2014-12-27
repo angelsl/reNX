@@ -1,4 +1,4 @@
-﻿// reNX is copyright angelsl, 2011 to 2013 inclusive.
+// reNX is copyright angelsl, 2011 to 2013 inclusive.
 // 
 // This file (NXFile.cs) is part of reNX.
 // 
@@ -39,17 +39,15 @@ namespace reNX {
     ///     An NX file.
     /// </summary>
     public sealed unsafe class NXFile : IDisposable {
-        internal readonly NXReadSelection _flags;
-
-        internal readonly byte* _start;
-        internal NXNode[] _nodes;
-
-        internal ulong* _bitmapBlock = (ulong*)0;
-        internal ulong* _mp3Block = (ulong*)0;
+        internal ulong* _bitmapBlock = (ulong*) 0;
+        internal ulong* _mp3Block = (ulong*) 0;
         internal NXNode.NodeData* _nodeBlock;
+        internal NXNode[] _nodes;
         private BytePointerObject _pointerWrapper;
         private ulong* _stringBlock;
         private string[] _strings;
+        internal readonly NXReadSelection _flags;
+        internal readonly byte* _start;
 
         /// <summary>
         ///     Creates and loads a NX file from a path.
@@ -86,7 +84,8 @@ namespace reNX {
         ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public void Dispose() {
-            if (_pointerWrapper != null) _pointerWrapper.Dispose();
+            if (_pointerWrapper != null)
+                _pointerWrapper.Dispose();
             _pointerWrapper = null;
             _nodes = null;
             _strings = null;
@@ -112,27 +111,31 @@ namespace reNX {
                 (path.StartsWith("/") ? path.Substring(1) : path).Split('/')
                                                                  .Where(node => node != ".")
                                                                  .Aggregate(BaseNode,
-                                                                            (current, node) =>
-                                                                            current[node]);
+                                                                     (current, node) =>
+                                                                         current[node]);
         }
 
         private void Parse() {
-            HeaderData hd = *((HeaderData*)_start);
-            if (hd.PKG3 != 0x34474B50) Util.Die("NX file has invalid header; invalid magic");
-            _nodeBlock = (NXNode.NodeData*)(_start + hd.NodeBlock);
+            HeaderData hd = *((HeaderData*) _start);
+            if (hd.PKG3 != 0x34474B50)
+                Util.Die("NX file has invalid header; invalid magic");
+            _nodeBlock = (NXNode.NodeData*) (_start + hd.NodeBlock);
             _nodes = new NXNode[hd.NodeCount];
-            _stringBlock = (ulong*)(_start + hd.StringBlock);
+            _stringBlock = (ulong*) (_start + hd.StringBlock);
             _strings = new string[hd.StringCount];
 
-            if (hd.BitmapCount > 0) _bitmapBlock = (ulong*)(_start + hd.BitmapBlock);
-            if (hd.SoundCount > 0) _mp3Block = (ulong*)(_start + hd.SoundBlock);
+            if (hd.BitmapCount > 0)
+                _bitmapBlock = (ulong*) (_start + hd.BitmapBlock);
+            if (hd.SoundCount > 0)
+                _mp3Block = (ulong*) (_start + hd.SoundBlock);
         }
 
         internal string GetString(uint id) {
-            if (_strings[id] != null) return _strings[id];
+            if (_strings[id] != null)
+                return _strings[id];
             byte* ptr = _start + _stringBlock[id];
-            var raw = new byte[*((ushort*)ptr)];
-            Marshal.Copy((IntPtr)(ptr + 2), raw, 0, raw.Length);
+            byte[] raw = new byte[*((ushort*) ptr)];
+            Marshal.Copy((IntPtr) (ptr + 2), raw, 0, raw.Length);
             return (_strings[id] = Encoding.UTF8.GetString(raw));
         }
 
@@ -200,7 +203,7 @@ namespace reNX {
         /// <summary>
         ///     Set this flag to disable lazy loading of string, audio and bitmap properties.
         /// </summary>
-        EagerParseAllProperties = EagerParseBitmap | EagerParseAudio | EagerParseStrings,
+        EagerParseAllProperties = EagerParseBitmap | EagerParseAudio | EagerParseStrings
     }
 
     internal static class Util {

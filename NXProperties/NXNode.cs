@@ -1,4 +1,4 @@
-﻿// reNX is copyright angelsl, 2011 to 2013 inclusive.
+// reNX is copyright angelsl, 2011 to 2013 inclusive.
 // 
 // This file (NXNode.cs) is part of reNX.
 // 
@@ -30,7 +30,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -39,34 +38,8 @@ namespace reNX.NXProperties {
     ///     A node containing no value.
     /// </summary>
     public class NXNode : IEnumerable<NXNode> {
-
-        private class ChildEnumerator : IEnumerator<NXNode> {
-
-            private int _id = -1;
-            private NXNode _node;
-
-            public void Dispose() {
-            }
-
-            public unsafe bool MoveNext() {
-                ++_id;
-                return _id > -1 && _id < _node._nodeData->ChildCount;
-            }
-
-            public void Reset() {
-                _id = -1;
-            }
-
-            public unsafe NXNode Current { get { return _node._file._nodes[_node._nodeData->FirstChildID + _id]; } }
-
-            object IEnumerator.Current {
-                get { return Current; }
-            }
-
-            public ChildEnumerator(NXNode n) {
-                _node = n;
-            }
-        }
+        private bool _childinit;
+        private Dictionary<string, NXNode> _children;
 
         /// <summary>
         ///     The NX file containing this node.
@@ -77,9 +50,6 @@ namespace reNX.NXProperties {
         ///     The pointer to the <see cref="NodeData" /> describing this node.
         /// </summary>
         protected readonly unsafe NodeData* _nodeData;
-
-        private Dictionary<string, NXNode> _children;
-        private bool _childinit;
 
         internal unsafe NXNode(NodeData* ptr, NXFile file) {
             _nodeData = ptr;
@@ -122,39 +92,11 @@ namespace reNX.NXProperties {
         /// </exception>
         public unsafe NXNode this[string name] {
             get {
-                if (_nodeData->ChildCount > 0 && _children == null) CheckChild(!_childinit, true);
+                if (_nodeData->ChildCount > 0 && _children == null)
+                    CheckChild(!_childinit, true);
                 return _children == null ? null : _children[name];
             }
         }
-
-        #region IEnumerable<NXNode> Members
-
-        /// <summary>
-        ///     Returns an enumerator that iterates through the collection.
-        /// </summary>
-        /// <returns>
-        ///     A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection.
-        /// </returns>
-        /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
-        /// <filterpriority>1</filterpriority>
-        public IEnumerator<NXNode> GetEnumerator() {
-            if (!_childinit) CheckChild();
-            return new ChildEnumerator(this);
-        }
-
-        /// <summary>
-        ///     Returns an enumerator that iterates through a collection.
-        /// </summary>
-        /// <returns>
-        ///     An <see cref="T:System.Collections.IEnumerator" /> object that can be used to iterate through the collection.
-        /// </returns>
-        /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
-        /// <filterpriority>2</filterpriority>
-        IEnumerator IEnumerable.GetEnumerator() {
-            return GetEnumerator();
-        }
-
-        #endregion
 
         /// <summary>
         ///     Returns true if this node contains a child with the specified name.
@@ -163,7 +105,8 @@ namespace reNX.NXProperties {
         /// <returns> true if this node contains a child with the specified name; false otherwise </returns>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
         public unsafe bool ContainsChild(string name) {
-            if (_nodeData->ChildCount > 0 && _children == null) CheckChild(!_childinit, true);
+            if (_nodeData->ChildCount > 0 && _children == null)
+                CheckChild(!_childinit, true);
             return _children != null && _children.ContainsKey(name);
         }
 
@@ -185,21 +128,26 @@ namespace reNX.NXProperties {
             // ugly code begins here
             NodeData* start = _file._nodeBlock + _nodeData->FirstChildID;
             long end = _nodeData->ChildCount + _nodeData->FirstChildID;
-            
+
             switch ((parse ? 1 : 0) | (map ? 2 : 0)) {
                 case 1:
-                    for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start) if(_file._nodes[i] == null) _file._nodes[i] = ParseNode(start, this, _file);
+                    for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start)
+                        if (_file._nodes[i] == null)
+                            _file._nodes[i] = ParseNode(start, this, _file);
                     _childinit = true;
                     break;
                 case 2:
                     _children = new Dictionary<string, NXNode>(_nodeData->ChildCount);
-                    for (uint i = _nodeData->FirstChildID; i < end; ++i) AddChild(_file._nodes[i]);
+                    for (uint i = _nodeData->FirstChildID; i < end; ++i)
+                        AddChild(_file._nodes[i]);
                     break;
                 case 3:
                     _children = new Dictionary<string, NXNode>(_nodeData->ChildCount);
                     for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start)
-                        if (_file._nodes[i] == null) AddChild(_file._nodes[i] = ParseNode(start, this, _file));
-                        else AddChild(_file._nodes[i]);
+                        if (_file._nodes[i] == null)
+                            AddChild(_file._nodes[i] = ParseNode(start, this, _file));
+                        else
+                            AddChild(_file._nodes[i]);
                     _childinit = true;
                     break;
                 default:
@@ -237,9 +185,38 @@ namespace reNX.NXProperties {
                     return Util.Die<NXNode>(string.Format("NX node has invalid type {0}; dying", ptr->Type));
             }
 
-            if ((file._flags & NXReadSelection.EagerParseFile) == NXReadSelection.EagerParseFile) ret.CheckChild();
+            if ((file._flags & NXReadSelection.EagerParseFile) == NXReadSelection.EagerParseFile)
+                ret.CheckChild();
 
             return ret;
+        }
+
+        private class ChildEnumerator : IEnumerator<NXNode> {
+            private int _id = -1;
+            private readonly NXNode _node;
+
+            public ChildEnumerator(NXNode n) {
+                _node = n;
+            }
+
+            public void Dispose() {}
+
+            public unsafe bool MoveNext() {
+                ++_id;
+                return _id > -1 && _id < _node._nodeData->ChildCount;
+            }
+
+            public void Reset() {
+                _id = -1;
+            }
+
+            public unsafe NXNode Current {
+                get { return _node._file._nodes[_node._nodeData->FirstChildID + _id]; }
+            }
+
+            object IEnumerator.Current {
+                get { return Current; }
+            }
         }
 
         #region Nested type: NodeData
@@ -270,6 +247,36 @@ namespace reNX.NXProperties {
             [FieldOffset(16)] internal readonly ushort Type5Width;
 
             [FieldOffset(18)] internal readonly ushort Type5Height;
+        }
+
+        #endregion
+
+        #region IEnumerable<NXNode> Members
+
+        /// <summary>
+        ///     Returns an enumerator that iterates through the collection.
+        /// </summary>
+        /// <returns>
+        ///     A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection.
+        /// </returns>
+        /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
+        /// <filterpriority>1</filterpriority>
+        public IEnumerator<NXNode> GetEnumerator() {
+            if (!_childinit)
+                CheckChild();
+            return new ChildEnumerator(this);
+        }
+
+        /// <summary>
+        ///     Returns an enumerator that iterates through a collection.
+        /// </summary>
+        /// <returns>
+        ///     An <see cref="T:System.Collections.IEnumerator" /> object that can be used to iterate through the collection.
+        /// </returns>
+        /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
+        /// <filterpriority>2</filterpriority>
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
         }
 
         #endregion
@@ -305,7 +312,8 @@ namespace reNX.NXProperties {
         /// </summary>
         public override T Value {
             get {
-                if (_value == null) Interlocked.CompareExchange(ref _value, LoadValue(), null);
+                if (_value == null)
+                    Interlocked.CompareExchange(ref _value, LoadValue(), null);
                 return _value;
             }
         }
@@ -322,7 +330,8 @@ namespace reNX.NXProperties {
     /// </summary>
     public static class NXValueHelper {
         /// <summary>
-        ///     Tries to cast this NXNode to a <see cref="NXValuedNode{T}" /> and returns its value, or returns the default value if the cast is invalid.
+        ///     Tries to cast this NXNode to a <see cref="NXValuedNode{T}" /> and returns its value, or returns the default value
+        ///     if the cast is invalid.
         /// </summary>
         /// <typeparam name="T"> The type of the value to return. </typeparam>
         /// <param name="n"> This NXNode. </param>
@@ -331,7 +340,7 @@ namespace reNX.NXProperties {
         ///     The contained value if the cast succeeds, or <paramref name="def" /> if the cast fails.
         /// </returns>
         public static T ValueOrDefault<T>(this NXNode n, T def) {
-            var nxvn = n as NXValuedNode<T>;
+            NXValuedNode<T> nxvn = n as NXValuedNode<T>;
             return nxvn != null ? nxvn.Value : def;
         }
 
@@ -345,7 +354,7 @@ namespace reNX.NXProperties {
         /// <returns> The contained value if the cast succeeds. </returns>
         /// <exception cref="InvalidCastException">Thrown if the cast is invalid.</exception>
         public static T ValueOrDie<T>(this NXNode n) {
-            return ((NXValuedNode<T>)n).Value;
+            return ((NXValuedNode<T>) n).Value;
         }
     }
 }

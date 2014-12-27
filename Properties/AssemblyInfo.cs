@@ -1,4 +1,4 @@
-﻿// reNX is copyright angelsl, 2011 to 2013 inclusive.
+// reNX is copyright angelsl, 2011 to 2013 inclusive.
 // 
 // This file (AssemblyInfo.cs) is part of reNX.
 // 
