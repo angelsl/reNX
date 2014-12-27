@@ -31,6 +31,7 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using Assembine;
 using reNX.NXProperties;
 
@@ -75,7 +76,11 @@ namespace reNX {
         ///     The base node of this NX file.
         /// </summary>
         public NXNode BaseNode {
-            get { return _nodes[0] ?? (_nodes[0] = NXNode.ParseNode(_nodeBlock, null, this)); }
+            get {
+                if (_nodes[0] == null)
+                    Interlocked.CompareExchange(ref _nodes[0], NXNode.ParseNode(_nodeBlock, null, this), null);
+                return _nodes[0];
+            }
         }
 
         #region IDisposable Members
@@ -136,7 +141,8 @@ namespace reNX {
             byte* ptr = _start + _stringBlock[id];
             byte[] raw = new byte[*((ushort*) ptr)];
             Marshal.Copy((IntPtr) (ptr + 2), raw, 0, raw.Length);
-            return (_strings[id] = Encoding.UTF8.GetString(raw));
+            Interlocked.CompareExchange(ref _strings[id], Encoding.UTF8.GetString(raw), null);
+            return _strings[id];
         }
 
         #region Nested type: HeaderData

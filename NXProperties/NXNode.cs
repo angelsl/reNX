@@ -92,9 +92,11 @@ namespace reNX.NXProperties {
         /// </exception>
         public unsafe NXNode this[string name] {
             get {
-                if (_nodeData->ChildCount > 0 && _children == null)
-                    CheckChild(!_childinit, true);
-                return _children == null ? null : _children[name];
+                if (_nodeData->ChildCount > 0) {
+                    if (_children == null) CheckChild(!_childinit, true);
+                    return _children[name];
+                }
+                return null;
             }
         }
 
@@ -105,9 +107,11 @@ namespace reNX.NXProperties {
         /// <returns> true if this node contains a child with the specified name; false otherwise </returns>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
         public unsafe bool ContainsChild(string name) {
-            if (_nodeData->ChildCount > 0 && _children == null)
-                CheckChild(!_childinit, true);
-            return _children != null && _children.ContainsKey(name);
+            if (_nodeData->ChildCount > 0) {
+                if (_children == null) CheckChild(!_childinit, true);
+                return _children.ContainsKey(name);
+            }
+            return false;
         }
 
         /// <summary>
@@ -120,10 +124,6 @@ namespace reNX.NXProperties {
             return this[name];
         }
 
-        private void AddChild(NXNode child) {
-            _children.Add(child.Name, child);
-        }
-
         private unsafe void CheckChild(bool parse = true, bool map = false) {
             // ugly code begins here
             NodeData* start = _file._nodeBlock + _nodeData->FirstChildID;
@@ -133,23 +133,27 @@ namespace reNX.NXProperties {
                 case 1:
                     for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start)
                         if (_file._nodes[i] == null)
-                            _file._nodes[i] = ParseNode(start, this, _file);
+                            Interlocked.CompareExchange(ref _file._nodes[i], ParseNode(start, this, _file), null);
                     _childinit = true;
                     break;
-                case 2:
-                    _children = new Dictionary<string, NXNode>(_nodeData->ChildCount);
+                case 2: {
+                    Dictionary<string, NXNode> children = new Dictionary<string, NXNode>(_nodeData->ChildCount);
                     for (uint i = _nodeData->FirstChildID; i < end; ++i)
-                        AddChild(_file._nodes[i]);
+                        AddChild(children, _file._nodes[i]);
+                    Interlocked.CompareExchange(ref _children, children, null);
                     break;
-                case 3:
-                    _children = new Dictionary<string, NXNode>(_nodeData->ChildCount);
-                    for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start)
+                }
+                case 3: {
+                    Dictionary<string, NXNode> children = new Dictionary<string, NXNode>(_nodeData->ChildCount);
+                    for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start) {
                         if (_file._nodes[i] == null)
-                            AddChild(_file._nodes[i] = ParseNode(start, this, _file));
-                        else
-                            AddChild(_file._nodes[i]);
+                            Interlocked.CompareExchange(ref _file._nodes[i], ParseNode(start, this, _file), null);
+                        AddChild(children, _file._nodes[i]);
+                    }
                     _childinit = true;
+                    Interlocked.CompareExchange(ref _children, children, null);
                     break;
+                }
                 default:
                     Util.Die("This should never happen; CheckChild");
                     break;
@@ -189,6 +193,10 @@ namespace reNX.NXProperties {
                 ret.CheckChild();
 
             return ret;
+        }
+
+        private static void AddChild(Dictionary<string, NXNode> map, NXNode child) {
+            map.Add(child.Name, child);
         }
 
         private class ChildEnumerator : IEnumerator<NXNode> {
