@@ -40,6 +40,8 @@ namespace reNX {
     ///     An NX file.
     /// </summary>
     public sealed unsafe class NXFile : IDisposable {
+        internal readonly NXReadSelection _flags;
+        internal readonly byte* _start;
         internal ulong* _bitmapBlock = (ulong*) 0;
         internal ulong* _mp3Block = (ulong*) 0;
         internal NXNode.NodeData* _nodeBlock;
@@ -47,8 +49,6 @@ namespace reNX {
         private BytePointerObject _pointerWrapper;
         private ulong* _stringBlock;
         private string[] _strings;
-        internal readonly NXReadSelection _flags;
-        internal readonly byte* _start;
 
         /// <summary>
         ///     Creates and loads a NX file from a path.
@@ -112,12 +112,7 @@ namespace reNX {
         /// <param name="path"> The path to resolve. </param>
         /// <exception cref="System.Collections.Generic.KeyNotFoundException">The path is invalid.</exception>
         public NXNode ResolvePath(string path) {
-            return
-                (path.StartsWith("/") ? path.Substring(1) : path).Split('/')
-                                                                 .Where(node => node != ".")
-                                                                 .Aggregate(BaseNode,
-                                                                     (current, node) =>
-                                                                         current[node]);
+            return (path.StartsWith("/") ? path.Substring(1) : path).Split('/').Where(node => node != ".").Aggregate(BaseNode, (current, node) => current[node]);
         }
 
         private void Parse() {

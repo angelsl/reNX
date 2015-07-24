@@ -38,9 +38,6 @@ namespace reNX.NXProperties {
     ///     A node containing no value.
     /// </summary>
     public class NXNode : IEnumerable<NXNode> {
-        private bool _childinit;
-        private Dictionary<string, NXNode> _children;
-
         /// <summary>
         ///     The NX file containing this node.
         /// </summary>
@@ -50,6 +47,9 @@ namespace reNX.NXProperties {
         ///     The pointer to the <see cref="NodeData" /> describing this node.
         /// </summary>
         protected readonly unsafe NodeData* _nodeData;
+
+        private bool _childinit;
+        private Dictionary<string, NXNode> _children;
 
         internal unsafe NXNode(NodeData* ptr, NXFile file) {
             _nodeData = ptr;
@@ -93,7 +93,8 @@ namespace reNX.NXProperties {
         public unsafe NXNode this[string name] {
             get {
                 if (_nodeData->ChildCount > 0) {
-                    if (_children == null) CheckChild(!_childinit, true);
+                    if (_children == null)
+                        CheckChild(!_childinit, true);
                     return _children[name];
                 }
                 return null;
@@ -108,7 +109,8 @@ namespace reNX.NXProperties {
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
         public unsafe bool ContainsChild(string name) {
             if (_nodeData->ChildCount > 0) {
-                if (_children == null) CheckChild(!_childinit, true);
+                if (_children == null)
+                    CheckChild(!_childinit, true);
                 return _children.ContainsKey(name);
             }
             return false;
@@ -131,9 +133,10 @@ namespace reNX.NXProperties {
 
             switch ((parse ? 1 : 0) | (map ? 2 : 0)) {
                 case 1:
-                    for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start)
+                    for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start) {
                         if (_file._nodes[i] == null)
                             Interlocked.CompareExchange(ref _file._nodes[i], ParseNode(start, this, _file), null);
+                    }
                     _childinit = true;
                     break;
                 case 2: {
@@ -200,8 +203,8 @@ namespace reNX.NXProperties {
         }
 
         private class ChildEnumerator : IEnumerator<NXNode> {
-            private int _id = -1;
             private readonly NXNode _node;
+            private int _id = -1;
 
             public ChildEnumerator(NXNode n) {
                 _node = n;

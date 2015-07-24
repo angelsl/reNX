@@ -49,8 +49,7 @@ namespace reNX.NXProperties {
         ///     The bitmap, as a <see cref="Bitmap" />
         /// </returns>
         protected override unsafe Bitmap LoadValue() {
-            if (_file._bitmapBlock == (ulong*) 0 ||
-                (_file._flags & NXReadSelection.NeverParseBitmap) == NXReadSelection.NeverParseBitmap)
+            if (_file._bitmapBlock == (ulong*) 0 || (_file._flags & NXReadSelection.NeverParseBitmap) == NXReadSelection.NeverParseBitmap)
                 return null;
             byte[] bdata = new byte[_nodeData->Type5Width*_nodeData->Type5Height*4];
             GCHandle gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned);
@@ -61,8 +60,7 @@ namespace reNX.NXProperties {
                     Util.EDecompressLZ464(ptr, outBuf, bdata.Length);
                 else
                     Util.EDecompressLZ432(ptr, outBuf, bdata.Length);
-                using (Bitmap b = new Bitmap(_nodeData->Type5Width, _nodeData->Type5Height, 4*_nodeData->Type5Width,
-                    PixelFormat.Format32bppArgb, outBuf))
+                using (Bitmap b = new Bitmap(_nodeData->Type5Width, _nodeData->Type5Height, 4*_nodeData->Type5Width, PixelFormat.Format32bppArgb, outBuf))
                     return new Bitmap(b);
             } finally {
                 gcH.Free();
