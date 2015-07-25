@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>reNX</id>
+    <version>$version$</version>
+    <title>reNX</title>
+    <authors>angelsl</authors>
+    <owners>angelsl</owners>
+    <licenseUrl>https://github.com/angelsl/ms-reNX#license</licenseUrl>
+    <projectUrl>https://github.com/angelsl/ms-reNX</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>reNX, a C# library for reading NX files.</description>
+    <copyright>Copyright © angelsl 2015</copyright>
+    <tags>reNX NX</tags>
+  </metadata>
+</package>
