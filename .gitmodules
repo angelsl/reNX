@@ -1,3 +1,3 @@
-[submodule "Assembine"]
-	path = Assembine
+[submodule "reNX/Assembine"]
+	path = reNX/Assembine
 	url = git://github.com/angelsl/misc-Assembine.git
