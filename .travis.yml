@@ -18,14 +18,14 @@ notifications:
 
 env:
     global:
-    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
-    #   via the "travis encrypt" command using the project repo's public key
+        - secure: "hfAgHhUH1nWXsm7VsW0YNgvyb4HWwRdEnqBh6GByKNpaNvOi9yD0k8ZEO+jBtEvj4R9EAxm4oLVZu7SGYylO599X8YNMvVKI0hS1nyLBgSX9t6yfDv/j7WVnzaMc7zv8QRQ0kcwM7xSmwnhZX4PioSg8NE13H7rqgGtuPc4Qoyk="
         - secure: "dn4mQpIcqWZU6rQqBx9/Lz7yDyjcuJ4BVS6OrnluTjzt/lNSjf0zHYwScwL7X+qPtqCO6YaZk/ZdM4rRGXwC7bqExgbbfUmzvb9M0tRoZdgn/Q5RlwebMvcZL7oRCXgfQv9/PUPXKnjobqN7lYS8W6sra4QVC7vfeDlIkROroLY="
 
 addons:
     coverity_scan:
         project:
             name: "angelsl/ms-reNX"
+        notification_email: "$SEC_EMAIL"
         build_command: "xbuild /p:Configuration=Release reNX.sln"
         branch_pattern: coverity_scan
         
