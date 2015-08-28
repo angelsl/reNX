@@ -1,4 +1,4 @@
-#reNX [![Build Status](https://travis-ci.org/angelsl/ms-reNX.svg?branch=master)](https://travis-ci.org/angelsl/ms-reNX) [![Build status](https://ci.appveyor.com/api/projects/status/j4xok1y5d45itkrk/branch/master?svg=true)](https://ci.appveyor.com/project/angelsl/ms-renx) [![Coverity Scan Build Status](https://scan.coverity.com/projects/6171/badge.svg)](https://scan.coverity.com/projects/angelsl-ms-renx)
+#reNX [![Build Status](https://travis-ci.org/angelsl/ms-reNX.svg?branch=master)](https://travis-ci.org/angelsl/ms-reNX) [![Build status](https://ci.appveyor.com/api/projects/status/j4xok1y5d45itkrk/branch/master?svg=true)](https://ci.appveyor.com/project/angelsl/ms-renx)
 ...is a simple and clean .NET library for reading NX files.
 
 It, along with [NoLifeNX](https://github.com/NoLifeDev/NoLifeNx) and [WZ2NX](https://github.com/angelsl/ms-wz2nx), is the reference implementation of the NX format.
