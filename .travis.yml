@@ -4,14 +4,28 @@ solution: reNX.sln
 sudo: false
 
 script:
-  - xbuild /p:Configuration=Release reNX.sln
-  - mono ./packages/NUnit.Runners.*/tools/nunit-console.exe ./reNX.Tests/bin/Release/reNX.Tests.dll
+    - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then xbuild /p:Configuration=Release reNX.sln; fi
+    - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then mono ./packages/NUnit.Runners.*/tools/nunit-console.exe ./reNX.Tests/bin/Release/reNX.Tests.dll; fi
 
 notifications:
-  email: false
-  irc:
-    channels:
-     - "irc.fyrechat.net#vana-commits"
-    skip_join: true
-    template:
-      - "%{repository}#%{build_number} (%{branch} - %{commit} - %{author}): %{message}"
+    email: false
+    irc:
+        channels:
+            - "irc.fyrechat.net#vana-commits"
+        skip_join: true
+        template:
+            - "%{repository}#%{build_number} (%{branch} - %{commit} - %{author}): %{message}"
+
+env:
+    global:
+    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+    #   via the "travis encrypt" command using the project repo's public key
+        - secure: "dn4mQpIcqWZU6rQqBx9/Lz7yDyjcuJ4BVS6OrnluTjzt/lNSjf0zHYwScwL7X+qPtqCO6YaZk/ZdM4rRGXwC7bqExgbbfUmzvb9M0tRoZdgn/Q5RlwebMvcZL7oRCXgfQv9/PUPXKnjobqN7lYS8W6sra4QVC7vfeDlIkROroLY="
+
+addons:
+    coverity_scan:
+        project:
+            name: "angelsl/ms-reNX"
+        build_command: "xbuild /p:Configuration=Release reNX.sln"
+        branch_pattern: coverity_scan
+        
