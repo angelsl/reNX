@@ -46,7 +46,7 @@ namespace reNX {
         internal ulong* _mp3Block = (ulong*) 0;
         internal NXNode.NodeData* _nodeBlock;
         internal NXNode[] _nodes;
-        private BytePointerObject _pointerWrapper;
+        private IBytePointerObject _pointerWrapper;
         private ulong* _stringBlock;
         private string[] _strings;
 
