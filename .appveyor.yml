@@ -1,0 +1,17 @@
+version: ci-{build}
+configuration: Release
+clone_depth: 1
+
+branches:
+    except:
+        - coverity_scan
+
+install:
+    - git submodule update --init --recursive
+
+before_build:
+    - nuget restore
+
+build:
+    parallel: true
+    verbosity: normal
