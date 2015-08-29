@@ -28,7 +28,6 @@
 // module is a module which is not derived from or based on reNX.
 
 using System;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -113,10 +112,12 @@ namespace reNX {
         /// <exception cref="System.Collections.Generic.KeyNotFoundException">The path is invalid.</exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public NXNode ResolvePath(string path) {
-            return
-                (path.StartsWith("/") ? path.Substring(1) : path).Split('/')
-                    .Where(node => node != ".")
-                    .Aggregate(BaseNode, (current, node) => current[node]);
+            string[] elements = (path.StartsWith("/") ? path.Substring(1) : path).Split('/');
+            NXNode node = BaseNode;
+            foreach(string element in elements)
+                if (element != ".")
+                    node = node[element];
+            return node;
         }
 
         private void Parse() {
