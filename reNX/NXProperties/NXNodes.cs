@@ -49,18 +49,18 @@ namespace reNX.NXProperties {
         ///     The bitmap, as a <see cref="Bitmap" />
         /// </returns>
         protected override unsafe Bitmap LoadValue() {
-            if (_file._bitmapBlock == (ulong*) 0 || (_file._flags & NXReadSelection.NeverParseBitmap) == NXReadSelection.NeverParseBitmap)
+            if (_file._bitmapBlock == (ulong*) 0 ||
+                (_file._flags & NXReadSelection.NeverParseBitmap) == NXReadSelection.NeverParseBitmap)
                 return null;
             byte[] bdata = new byte[_nodeData->Type5Width*_nodeData->Type5Height*4];
             GCHandle gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned);
             try {
                 IntPtr outBuf = gcH.AddrOfPinnedObject();
                 byte* ptr = _file._start + _file._bitmapBlock[_nodeData->TypeIDData] + 4;
-                if (Util._is64Bit)
-                    Util.EDecompressLZ464(ptr, outBuf, bdata.Length);
-                else
-                    Util.EDecompressLZ432(ptr, outBuf, bdata.Length);
-                using (Bitmap b = new Bitmap(_nodeData->Type5Width, _nodeData->Type5Height, 4*_nodeData->Type5Width, PixelFormat.Format32bppArgb, outBuf))
+                Util.DecompressLZ4(ptr, outBuf, bdata.Length);
+                using (
+                    Bitmap b = new Bitmap(_nodeData->Type5Width, _nodeData->Type5Height, 4*_nodeData->Type5Width,
+                        PixelFormat.Format32bppArgb, outBuf))
                     return new Bitmap(b);
             } finally {
                 gcH.Free();
@@ -93,32 +93,24 @@ namespace reNX.NXProperties {
     internal sealed unsafe class NXInt64Node : NXValuedNode<long> {
         public NXInt64Node(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
-        public override long Value {
-            get { return _nodeData->Type1Data; }
-        }
+        public override long Value => _nodeData->Type1Data;
     }
 
     internal sealed unsafe class NXDoubleNode : NXValuedNode<double> {
         public NXDoubleNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
-        public override double Value {
-            get { return _nodeData->Type2Data; }
-        }
+        public override double Value => _nodeData->Type2Data;
     }
 
     internal sealed unsafe class NXStringNode : NXValuedNode<string> {
         public NXStringNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
-        public override string Value {
-            get { return _file.GetString(_nodeData->TypeIDData); }
-        }
+        public override string Value => _file.GetString(_nodeData->TypeIDData);
     }
 
     internal sealed unsafe class NXPointNode : NXValuedNode<Point> {
         public NXPointNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
-        public override Point Value {
-            get { return new Point(_nodeData->Type4DataX, _nodeData->Type4DataY); }
-        }
+        public override Point Value => new Point(_nodeData->Type4DataX, _nodeData->Type4DataY);
     }
 }

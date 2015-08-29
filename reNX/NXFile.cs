@@ -29,6 +29,7 @@
 
 using System;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -89,8 +90,7 @@ namespace reNX {
         ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public void Dispose() {
-            if (_pointerWrapper != null)
-                _pointerWrapper.Dispose();
+            _pointerWrapper?.Dispose();
             _pointerWrapper = null;
             _nodes = null;
             _strings = null;
@@ -111,8 +111,12 @@ namespace reNX {
         /// </summary>
         /// <param name="path"> The path to resolve. </param>
         /// <exception cref="System.Collections.Generic.KeyNotFoundException">The path is invalid.</exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public NXNode ResolvePath(string path) {
-            return (path.StartsWith("/") ? path.Substring(1) : path).Split('/').Where(node => node != ".").Aggregate(BaseNode, (current, node) => current[node]);
+            return
+                (path.StartsWith("/") ? path.Substring(1) : path).Split('/')
+                    .Where(node => node != ".")
+                    .Aggregate(BaseNode, (current, node) => current[node]);
         }
 
         private void Parse() {
@@ -208,20 +212,26 @@ namespace reNX {
     }
 
     internal static class Util {
-        internal static readonly bool _is64Bit = IntPtr.Size == 8;
+        private static readonly bool _is64Bit = IntPtr.Size == 8;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static T Die<T>(string cause) {
             throw new NXException(cause);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void Die(string cause) {
             throw new NXException(cause);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static unsafe int DecompressLZ4(byte* source, IntPtr dest, int outputLen)
+            => _is64Bit ? EDecompressLZ464(source, dest, outputLen) : EDecompressLZ432(source, dest, outputLen);
+
         [DllImport("lz4_32", CallingConvention = CallingConvention.Cdecl, EntryPoint = "LZ4_decompress_fast")]
-        internal static extern unsafe int EDecompressLZ432(byte* source, IntPtr dest, int outputLen);
+        private static extern unsafe int EDecompressLZ432(byte* source, IntPtr dest, int outputLen);
 
         [DllImport("lz4_64", CallingConvention = CallingConvention.Cdecl, EntryPoint = "LZ4_decompress_fast")]
-        internal static extern unsafe int EDecompressLZ464(byte* source, IntPtr dest, int outputLen);
+        private static extern unsafe int EDecompressLZ464(byte* source, IntPtr dest, int outputLen);
     }
 }
