@@ -117,7 +117,7 @@ namespace reNX {
 
         private void Parse() {
             HeaderData hd = *((HeaderData*) _start);
-            if (hd.PKG3 != 0x34474B50)
+            if (hd.Magic != 0x34474B50)
                 Util.Die("NX file has invalid header; invalid magic");
             _nodeBlock = (NXNode.NodeData*) (_start + hd.NodeBlock);
             _nodes = new NXNode[hd.NodeCount];
@@ -144,7 +144,7 @@ namespace reNX {
 
         [StructLayout(LayoutKind.Explicit, Pack = 4, Size = 52)]
         private struct HeaderData {
-            [FieldOffset(0)] public readonly uint PKG3;
+            [FieldOffset(0)] public readonly uint Magic;
 
             [FieldOffset(4)] public readonly uint NodeCount;
 
