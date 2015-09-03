@@ -58,18 +58,24 @@ namespace reNX.NXProperties {
         /// <summary>
         ///     The name of this node.
         /// </summary>
-        public unsafe string Name => _file.GetString(_nodeData->NodeNameID);
+        public unsafe string Name {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _file.GetString(_nodeData->NodeNameID); }
+        }
 
         /// <summary>
         ///     The file containing this node.
         /// </summary>
-        public NXFile File => _file;
+        public NXFile File {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _file; }
+        }
 
         /// <summary>
         ///     The number of children contained in this node.
         /// </summary>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
-        public unsafe int ChildCount => _nodeData->ChildCount;
+        public unsafe int ChildCount {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _nodeData->ChildCount; }
+        }
 
         /// <summary>
         ///     Gets the child contained in this node that has the specified name.
@@ -83,6 +89,7 @@ namespace reNX.NXProperties {
         ///     .
         /// </exception>
         public unsafe NXNode this[string name] {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get {
                 if (_nodeData->ChildCount == 0)
                     return null;
@@ -97,6 +104,7 @@ namespace reNX.NXProperties {
         /// <param name="name"> The name of the child to check. </param>
         /// <returns> true if this node contains a child with the specified name; false otherwise </returns>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool ContainsChild(string name) {
             if (_nodeData->ChildCount == 0)
                 return false;
@@ -110,6 +118,7 @@ namespace reNX.NXProperties {
         /// <param name="name"> The name of the child to get. </param>
         /// <returns> The child with the specified name. </returns>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public NXNode GetChild(string name)
             => this[name];
 
@@ -160,6 +169,7 @@ namespace reNX.NXProperties {
             return ret;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void AddChild(Dictionary<string, NXNode> map, NXNode child) {
             map.Add(child.Name, child);
         }
@@ -174,6 +184,7 @@ namespace reNX.NXProperties {
 
             public void Dispose() {}
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public unsafe bool MoveNext() {
                 ++_id;
                 return _id > -1 && _id < _node._nodeData->ChildCount;
@@ -183,11 +194,16 @@ namespace reNX.NXProperties {
                 _id = -1;
             }
 
-            public unsafe NXNode Current
-                => _node._file.GetNode(_node._nodeData->FirstChildID + _id);
+            public unsafe NXNode Current {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get {
+                    return _node._file.GetNode(_node._nodeData->FirstChildID + _id);
+                }
+            }
 
-            object IEnumerator.Current
-                => Current;
+            object IEnumerator.Current {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return Current; }
+            }
         }
 
         #region IEnumerable<NXNode> Members
@@ -200,6 +216,7 @@ namespace reNX.NXProperties {
         /// </returns>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
         /// <filterpriority>1</filterpriority>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IEnumerator<NXNode> GetEnumerator() => new ChildEnumerator(this);
 
         /// <summary>
@@ -210,6 +227,7 @@ namespace reNX.NXProperties {
         /// </returns>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
         /// <filterpriority>2</filterpriority>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         IEnumerator IEnumerable.GetEnumerator()
             => GetEnumerator();
 
@@ -245,6 +263,7 @@ namespace reNX.NXProperties {
         ///     The value contained by this node. If the value has not been loaded, the value will be loaded.
         /// </summary>
         public override T Value {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get {
                 if (_value == null)
                     Interlocked.CompareExchange(ref _value, LoadValue(), null);
@@ -273,6 +292,7 @@ namespace reNX.NXProperties {
         /// <returns>
         ///     The contained value if the cast succeeds, or <paramref name="def" /> if the cast fails.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T ValueOrDefault<T>(this NXNode n, T def) {
             NXValuedNode<T> nxvn = n as NXValuedNode<T>;
             return nxvn != null ? nxvn.Value : def;
@@ -287,6 +307,7 @@ namespace reNX.NXProperties {
         /// <param name="n"> This NXNode. </param>
         /// <returns> The contained value if the cast succeeds. </returns>
         /// <exception cref="InvalidCastException">Thrown if the cast is invalid.</exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T ValueOrDie<T>(this NXNode n)
             => ((NXValuedNode<T>) n).Value;
     }

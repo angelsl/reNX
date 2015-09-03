@@ -74,6 +74,7 @@ namespace reNX {
         ///     The base node of this NX file.
         /// </summary>
         public NXNode BaseNode {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get {
                 if (_nodes[0] == null)
                     Interlocked.CompareExchange(ref _nodes[0], NXNode.ParseNode(_nodeBlock, this), null);

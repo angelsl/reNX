@@ -30,6 +30,7 @@
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace reNX.NXProperties {
@@ -92,24 +93,35 @@ namespace reNX.NXProperties {
     internal sealed unsafe class NXInt64Node : NXValuedNode<long> {
         public NXInt64Node(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
-        public override long Value => _nodeData->Type1Data;
+        public override long Value {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _nodeData->Type1Data; }
+        }
     }
 
     internal sealed unsafe class NXDoubleNode : NXValuedNode<double> {
         public NXDoubleNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
-        public override double Value => _nodeData->Type2Data;
+        public override double Value {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _nodeData->Type2Data; }
+        }
     }
 
     internal sealed unsafe class NXStringNode : NXValuedNode<string> {
         public NXStringNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
-        public override string Value => _file.GetString(_nodeData->TypeIDData);
+        public override string Value {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _file.GetString(_nodeData->TypeIDData); }
+        }
     }
 
     internal sealed unsafe class NXPointNode : NXValuedNode<Point> {
         public NXPointNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
-        public override Point Value => new Point(_nodeData->Type4DataX, _nodeData->Type4DataY);
+        public override Point Value {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get {
+                return new Point(_nodeData->Type4DataX, _nodeData->Type4DataY);
+            }
+        }
     }
 }
