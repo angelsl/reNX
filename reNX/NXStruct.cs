@@ -52,7 +52,7 @@ namespace reNX {
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 20, Pack = 2)]
-    public struct NodeData {
+    internal struct NodeData {
         [FieldOffset(0)] internal readonly uint NodeNameID;
 
         [FieldOffset(4)] internal readonly uint FirstChildID;

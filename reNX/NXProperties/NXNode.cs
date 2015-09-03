@@ -46,7 +46,7 @@ namespace reNX.NXProperties {
         /// <summary>
         ///     The pointer to the <see cref="NodeData" /> describing this node.
         /// </summary>
-        protected readonly unsafe NodeData* _nodeData;
+        internal readonly unsafe NodeData* _nodeData;
 
         private bool _childinit;
         private Dictionary<string, NXNode> _children;
