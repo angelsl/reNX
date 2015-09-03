@@ -1,4 +1,4 @@
-// reNX is copyright angelsl, 2011 to 2013 inclusive.
+// reNX is copyright angelsl, 2011 to 2015 inclusive.
 // 
 // This file (NXNodes.cs) is part of reNX.
 // 
@@ -26,7 +26,6 @@
 // choice, provided that you also meet, for each linked independent module,
 // the terms and conditions of the license of that module. An independent
 // module is a module which is not derived from or based on reNX.
-
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;

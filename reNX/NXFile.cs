@@ -1,4 +1,4 @@
-// reNX is copyright angelsl, 2011 to 2013 inclusive.
+// reNX is copyright angelsl, 2011 to 2015 inclusive.
 // 
 // This file (NXFile.cs) is part of reNX.
 // 
@@ -121,9 +121,10 @@ namespace reNX {
         public NXNode ResolvePath(string path) {
             string[] elements = (path.StartsWith("/") ? path.Substring(1) : path).Split('/');
             NXNode node = BaseNode;
-            foreach(string element in elements)
+            foreach (string element in elements) {
                 if (element != ".")
                     node = node[element];
+            }
             return node;
         }
 

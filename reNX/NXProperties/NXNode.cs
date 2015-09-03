@@ -1,4 +1,4 @@
-// reNX is copyright angelsl, 2011 to 2013 inclusive.
+// reNX is copyright angelsl, 2011 to 2015 inclusive.
 // 
 // This file (NXNode.cs) is part of reNX.
 // 
