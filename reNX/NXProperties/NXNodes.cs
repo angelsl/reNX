@@ -26,6 +26,7 @@
 // choice, provided that you also meet, for each linked independent module,
 // the terms and conditions of the license of that module. An independent
 // module is a module which is not derived from or based on reNX.
+
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -50,7 +51,7 @@ namespace reNX.NXProperties {
         protected override unsafe Bitmap LoadValue() {
             if (!_file.HasBitmap || _file.HasFlag(NXReadSelection.NeverParseBitmap))
                 return null;
-            byte[] bdata = new byte[_nodeData->Type5Width * _nodeData->Type5Height*4];
+            byte[] bdata = new byte[_nodeData->Type5Width*_nodeData->Type5Height*4];
             GCHandle gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned);
             try {
                 IntPtr outBuf = gcH.AddrOfPinnedObject();

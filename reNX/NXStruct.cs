@@ -26,6 +26,7 @@
 // choice, provided that you also meet, for each linked independent module,
 // the terms and conditions of the license of that module. An independent
 // module is a module which is not derived from or based on reNX.
+
 using System.Runtime.InteropServices;
 
 namespace reNX {
@@ -51,39 +52,27 @@ namespace reNX {
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 20, Pack = 2)]
-    public struct NodeData
-    {
-        [FieldOffset(0)]
-        internal readonly uint NodeNameID;
+    public struct NodeData {
+        [FieldOffset(0)] internal readonly uint NodeNameID;
 
-        [FieldOffset(4)]
-        internal readonly uint FirstChildID;
+        [FieldOffset(4)] internal readonly uint FirstChildID;
 
-        [FieldOffset(8)]
-        internal readonly ushort ChildCount;
+        [FieldOffset(8)] internal readonly ushort ChildCount;
 
-        [FieldOffset(10)]
-        internal readonly ushort Type;
+        [FieldOffset(10)] internal readonly ushort Type;
 
-        [FieldOffset(12)]
-        internal readonly long Type1Data;
+        [FieldOffset(12)] internal readonly long Type1Data;
 
-        [FieldOffset(12)]
-        internal readonly double Type2Data;
+        [FieldOffset(12)] internal readonly double Type2Data;
 
-        [FieldOffset(12)]
-        internal readonly uint TypeIDData;
+        [FieldOffset(12)] internal readonly uint TypeIDData;
 
-        [FieldOffset(12)]
-        internal readonly int Type4DataX;
+        [FieldOffset(12)] internal readonly int Type4DataX;
 
-        [FieldOffset(16)]
-        internal readonly int Type4DataY;
+        [FieldOffset(16)] internal readonly int Type4DataY;
 
-        [FieldOffset(16)]
-        internal readonly ushort Type5Width;
+        [FieldOffset(16)] internal readonly ushort Type5Width;
 
-        [FieldOffset(18)]
-        internal readonly ushort Type5Height;
+        [FieldOffset(18)] internal readonly ushort Type5Height;
     }
 }
