@@ -26,11 +26,9 @@
 // choice, provided that you also meet, for each linked independent module,
 // the terms and conditions of the license of that module. An independent
 // module is a module which is not derived from or based on reNX.
-
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using Assembine;
 using reNX.NXProperties;
@@ -40,12 +38,11 @@ namespace reNX {
     ///     An NX file.
     /// </summary>
     public sealed unsafe class NXFile : IDisposable {
-        internal readonly NXReadSelection _flags;
-        internal readonly byte* _start;
-        internal ulong* _bitmapBlock = (ulong*) 0;
-        internal ulong* _mp3Block = (ulong*) 0;
-        internal NXNode.NodeData* _nodeBlock;
-        internal NXNode[] _nodes;
+        private readonly byte* _start;
+        private ulong* _bitmapBlock = (ulong*) 0;
+        private ulong* _mp3Block = (ulong*) 0;
+        private NodeData* _nodeBlock;
+        private NXNode[] _nodes;
         private IBytePointerObject _pointerWrapper;
         private ulong* _stringBlock;
         private string[] _strings;
@@ -56,7 +53,7 @@ namespace reNX {
         /// <param name="path"> The path where the NX file is located. </param>
         /// <param name="flag"> NX parsing flags. </param>
         public NXFile(string path, NXReadSelection flag = NXReadSelection.None) {
-            _flags = flag;
+            Flags = flag;
             _start = (_pointerWrapper = new MemoryMappedFile(path)).Pointer;
             Parse();
         }
@@ -67,7 +64,7 @@ namespace reNX {
         /// <param name="input"> The byte array containing the NX file. </param>
         /// <param name="flag"> NX parsing flags. </param>
         public NXFile(byte[] input, NXReadSelection flag = NXReadSelection.None) {
-            _flags = flag;
+            Flags = flag;
             _start = (_pointerWrapper = new ByteArrayPointer(input)).Pointer;
             Parse();
         }
@@ -78,9 +75,19 @@ namespace reNX {
         public NXNode BaseNode {
             get {
                 if (_nodes[0] == null)
-                    Interlocked.CompareExchange(ref _nodes[0], NXNode.ParseNode(_nodeBlock, null, this), null);
+                    Interlocked.CompareExchange(ref _nodes[0], NXNode.ParseNode(_nodeBlock, this), null);
                 return _nodes[0];
             }
+        }
+
+        public NXReadSelection Flags { [MethodImpl(MethodImplOptions.AggressiveInlining)] get; }
+
+        public bool HasAudio {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _mp3Block != (ulong*) 0; }
+        }
+
+        public bool HasBitmap {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _bitmapBlock != (ulong*) 0; }
         }
 
         #region IDisposable Members
@@ -124,7 +131,7 @@ namespace reNX {
             HeaderData hd = *((HeaderData*) _start);
             if (hd.Magic != 0x34474B50)
                 Util.Die("NX file has invalid header; invalid magic");
-            _nodeBlock = (NXNode.NodeData*) (_start + hd.NodeBlock);
+            _nodeBlock = (NodeData*) (_start + hd.NodeBlock);
             _nodes = new NXNode[hd.NodeCount];
             _stringBlock = (ulong*) (_start + hd.StringBlock);
             _strings = new string[hd.StringCount];
@@ -135,40 +142,35 @@ namespace reNX {
                 _mp3Block = (ulong*) (_start + hd.SoundBlock);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal string GetString(uint id) {
             if (_strings[id] != null)
                 return _strings[id];
-            byte* ptr = _start + _stringBlock[id];
-            byte[] raw = new byte[*((ushort*) ptr)];
-            Marshal.Copy((IntPtr) (ptr + 2), raw, 0, raw.Length);
-            Interlocked.CompareExchange(ref _strings[id], Encoding.UTF8.GetString(raw), null);
+            ushort* ptr = (ushort*) (_start + _stringBlock[id]);
+            Interlocked.CompareExchange(ref _strings[id], new string((sbyte*) (ptr + 1), 0, *ptr), null);
             return _strings[id];
         }
 
-        #region Nested type: HeaderData
-
-        [StructLayout(LayoutKind.Explicit, Pack = 4, Size = 52)]
-        private struct HeaderData {
-            [FieldOffset(0)] public readonly uint Magic;
-
-            [FieldOffset(4)] public readonly uint NodeCount;
-
-            [FieldOffset(8)] public readonly long NodeBlock;
-
-            [FieldOffset(16)] public readonly uint StringCount;
-
-            [FieldOffset(20)] public readonly long StringBlock;
-
-            [FieldOffset(28)] public readonly uint BitmapCount;
-
-            [FieldOffset(32)] public readonly long BitmapBlock;
-
-            [FieldOffset(40)] public readonly uint SoundCount;
-
-            [FieldOffset(44)] public readonly long SoundBlock;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal NXNode GetNode(long idl) {
+            uint id = (uint) idl;
+            if (_nodes[id] == null)
+                Interlocked.CompareExchange(ref _nodes[id], NXNode.ParseNode(_nodeBlock + id, this), null);
+            return _nodes[id];
         }
 
-        #endregion
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal byte* LocateAudio(uint id) {
+            return _start + _mp3Block[id];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal byte* LocateBitmap(uint id) {
+            return _start + _bitmapBlock[id];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal bool HasFlag(NXReadSelection f) => (Flags & f) == f;
     }
 
     /// <summary>

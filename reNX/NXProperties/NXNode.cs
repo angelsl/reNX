@@ -26,11 +26,10 @@
 // choice, provided that you also meet, for each linked independent module,
 // the terms and conditions of the license of that module. An independent
 // module is a module which is not derived from or based on reNX.
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace reNX.NXProperties {
@@ -88,8 +87,7 @@ namespace reNX.NXProperties {
             get {
                 if (_nodeData->ChildCount == 0)
                     return null;
-                if (_children == null)
-                    CheckChild(!_childinit, true);
+                InitialiseMap();
                 return _children[name];
             }
         }
@@ -103,8 +101,7 @@ namespace reNX.NXProperties {
         public unsafe bool ContainsChild(string name) {
             if (_nodeData->ChildCount == 0)
                 return false;
-            if (_children == null)
-                CheckChild(!_childinit, true);
+            InitialiseMap();
             return _children.ContainsKey(name);
         }
 
@@ -117,45 +114,20 @@ namespace reNX.NXProperties {
         public NXNode GetChild(string name)
             => this[name];
 
-        private unsafe void CheckChild(bool parse = true, bool map = false) {
-            // ugly code begins here
-            NodeData* start = _file._nodeBlock + _nodeData->FirstChildID;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe void InitialiseMap() {
+            if (_children != null)
+                return;
+
             long end = _nodeData->ChildCount + _nodeData->FirstChildID;
 
-            switch ((parse ? 1 : 0) | (map ? 2 : 0)) {
-                case 1:
-                    for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start) {
-                        if (_file._nodes[i] == null)
-                            Interlocked.CompareExchange(ref _file._nodes[i], ParseNode(start, this, _file), null);
-                    }
-                    _childinit = true;
-                    break;
-                case 2: {
-                    Dictionary<string, NXNode> children = new Dictionary<string, NXNode>(_nodeData->ChildCount);
-                    for (uint i = _nodeData->FirstChildID; i < end; ++i)
-                        AddChild(children, _file._nodes[i]);
-                    Interlocked.CompareExchange(ref _children, children, null);
-                    break;
-                }
-                case 3: {
-                    Dictionary<string, NXNode> children = new Dictionary<string, NXNode>(_nodeData->ChildCount);
-                    for (uint i = _nodeData->FirstChildID; i < end; ++i, ++start) {
-                        if (_file._nodes[i] == null)
-                            Interlocked.CompareExchange(ref _file._nodes[i], ParseNode(start, this, _file), null);
-                        AddChild(children, _file._nodes[i]);
-                    }
-                    _childinit = true;
-                    Interlocked.CompareExchange(ref _children, children, null);
-                    break;
-                }
-                default:
-                    Util.Die("This should never happen; CheckChild");
-                    break;
-            }
-            // ugly code ends here
+            Dictionary<string, NXNode> children = new Dictionary<string, NXNode>(_nodeData->ChildCount);
+            for (uint i = _nodeData->FirstChildID; i < end; ++i)
+                AddChild(children, _file.GetNode(i));
+            Interlocked.CompareExchange(ref _children, children, null);
         }
 
-        internal static unsafe NXNode ParseNode(NodeData* ptr, NXNode parent, NXFile file) {
+        internal static unsafe NXNode ParseNode(NodeData* ptr, NXFile file) {
             NXNode ret;
             switch (ptr->Type) {
                 case 0:
@@ -183,8 +155,8 @@ namespace reNX.NXProperties {
                     return Util.Die<NXNode>($"NX node has invalid type {ptr->Type}; dying");
             }
 
-            if ((file._flags & NXReadSelection.EagerParseFile) == NXReadSelection.EagerParseFile)
-                ret.CheckChild();
+            if (file.HasFlag(NXReadSelection.EagerParseFile))
+                ret.InitialiseMap();
 
             return ret;
         }
@@ -213,43 +185,11 @@ namespace reNX.NXProperties {
             }
 
             public unsafe NXNode Current
-                => _node._file._nodes[_node._nodeData->FirstChildID + _id];
+                => _node._file.GetNode(_node._nodeData->FirstChildID + _id);
 
             object IEnumerator.Current
                 => Current;
         }
-
-        #region Nested type: NodeData
-
-        /// <summary>
-        ///     This structure describes a node.
-        /// </summary>
-        [StructLayout(LayoutKind.Explicit, Size = 20, Pack = 2)]
-        protected internal struct NodeData {
-            [FieldOffset(0)] internal readonly uint NodeNameID;
-
-            [FieldOffset(4)] internal readonly uint FirstChildID;
-
-            [FieldOffset(8)] internal readonly ushort ChildCount;
-
-            [FieldOffset(10)] internal readonly ushort Type;
-
-            [FieldOffset(12)] internal readonly long Type1Data;
-
-            [FieldOffset(12)] internal readonly double Type2Data;
-
-            [FieldOffset(12)] internal readonly uint TypeIDData;
-
-            [FieldOffset(12)] internal readonly int Type4DataX;
-
-            [FieldOffset(16)] internal readonly int Type4DataY;
-
-            [FieldOffset(16)] internal readonly ushort Type5Width;
-
-            [FieldOffset(18)] internal readonly ushort Type5Height;
-        }
-
-        #endregion
 
         #region IEnumerable<NXNode> Members
 
@@ -261,11 +201,7 @@ namespace reNX.NXProperties {
         /// </returns>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
         /// <filterpriority>1</filterpriority>
-        public IEnumerator<NXNode> GetEnumerator() {
-            if (!_childinit)
-                CheckChild();
-            return new ChildEnumerator(this);
-        }
+        public IEnumerator<NXNode> GetEnumerator() => new ChildEnumerator(this);
 
         /// <summary>
         ///     Returns an enumerator that iterates through a collection.

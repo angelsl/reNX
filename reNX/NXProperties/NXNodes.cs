@@ -38,7 +38,7 @@ namespace reNX.NXProperties {
     /// </summary>
     internal sealed class NXBitmapNode : NXLazyValuedNode<Bitmap> {
         internal unsafe NXBitmapNode(NodeData* ptr, NXFile file) : base(ptr, file) {
-            if ((_file._flags & NXReadSelection.EagerParseBitmap) == NXReadSelection.EagerParseBitmap)
+            if (_file.HasFlag(NXReadSelection.EagerParseBitmap))
                 _value = LoadValue();
         }
 
@@ -49,14 +49,13 @@ namespace reNX.NXProperties {
         ///     The bitmap, as a <see cref="Bitmap" />
         /// </returns>
         protected override unsafe Bitmap LoadValue() {
-            if (_file._bitmapBlock == (ulong*) 0 ||
-                (_file._flags & NXReadSelection.NeverParseBitmap) == NXReadSelection.NeverParseBitmap)
+            if (!_file.HasBitmap || _file.HasFlag(NXReadSelection.NeverParseBitmap))
                 return null;
-            byte[] bdata = new byte[_nodeData->Type5Width*_nodeData->Type5Height*4];
+            byte[] bdata = new byte[_nodeData->Type5Width * _nodeData->Type5Height*4];
             GCHandle gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned);
             try {
                 IntPtr outBuf = gcH.AddrOfPinnedObject();
-                byte* ptr = _file._start + _file._bitmapBlock[_nodeData->TypeIDData] + 4;
+                byte* ptr = _file.LocateBitmap(_nodeData->TypeIDData) + 4;
                 Util.DecompressLZ4(ptr, outBuf, bdata.Length);
                 using (
                     Bitmap b = new Bitmap(_nodeData->Type5Width, _nodeData->Type5Height, 4*_nodeData->Type5Width,
@@ -73,7 +72,7 @@ namespace reNX.NXProperties {
     /// </summary>
     internal sealed class NXAudioNode : NXLazyValuedNode<byte[]> {
         internal unsafe NXAudioNode(NodeData* ptr, NXFile file) : base(ptr, file) {
-            if ((_file._flags & NXReadSelection.EagerParseAudio) == NXReadSelection.EagerParseAudio)
+            if (_file.HasFlag(NXReadSelection.EagerParseAudio))
                 _value = LoadValue();
         }
 
@@ -82,10 +81,10 @@ namespace reNX.NXProperties {
         /// </summary>
         /// <returns> The audio file, as a byte array. </returns>
         protected override unsafe byte[] LoadValue() {
-            if (_file._mp3Block == (ulong*) 0)
+            if (!File.HasAudio)
                 return null;
             byte[] ret = new byte[_nodeData->Type4DataY];
-            Marshal.Copy((IntPtr) (_file._start + _file._mp3Block[_nodeData->TypeIDData]), ret, 0, _nodeData->Type4DataY);
+            Marshal.Copy((IntPtr) (_file.LocateAudio(_nodeData->TypeIDData)), ret, 0, _nodeData->Type4DataY);
             return ret;
         }
     }
