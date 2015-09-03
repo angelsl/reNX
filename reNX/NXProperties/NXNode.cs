@@ -48,13 +48,11 @@ namespace reNX.NXProperties {
         /// </summary>
         internal readonly unsafe NodeData* _nodeData;
 
-        private bool _childinit;
         private Dictionary<string, NXNode> _children;
 
         internal unsafe NXNode(NodeData* ptr, NXFile file) {
             _nodeData = ptr;
             _file = file;
-            _childinit = _nodeData->ChildCount == 0;
         }
 
         /// <summary>
