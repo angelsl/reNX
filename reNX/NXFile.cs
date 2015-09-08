@@ -31,7 +31,6 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-using Assembine;
 using reNX.NXProperties;
 
 namespace reNX {
