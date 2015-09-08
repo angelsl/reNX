@@ -44,7 +44,13 @@ namespace reNX.Tests {
             TestFileHash = "https://github.com/angelsl/ms-reNX-testfiles/raw/master/Data_NoBlobs_PKG4.nx.gz.sha256";
 
         public const string
-            TestFileName = @"data\test.nx.gz";
+            TestDataDir = "data";
+
+        public const string
+            TestFileName = "test.nx.gz";
+
+        public static readonly string
+            TestFilePath = Path.Combine(TestDataDir, TestFileName);
 
         private static byte[] _testFile;
 
@@ -59,7 +65,7 @@ namespace reNX.Tests {
             ret = DownloadToByteArray(TestFileURL);
             if (!CheckHash(ret, hash))
                 throw new Exception("Test file hash failed");
-            Directory.CreateDirectory(Path.GetDirectoryName(TestFileName));
+            Directory.CreateDirectory(TestDataDir);
             File.WriteAllBytes(TestFileName, ret);
             _testFile = UnGzip(ret);
             return _testFile;
