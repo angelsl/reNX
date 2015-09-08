@@ -5,7 +5,7 @@ sudo: false
 
 cache:
     directories:
-        - ./reNX.Tests/bin/Release/
+        - ./reNX.Tests/bin/Release/data
 
 script:
     - xbuild /t:Rebuild /p:Configuration=Release reNX.sln
