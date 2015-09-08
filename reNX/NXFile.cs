@@ -52,20 +52,26 @@ namespace reNX {
         /// </summary>
         /// <param name="path"> The path where the NX file is located. </param>
         /// <param name="flag"> NX parsing flags. </param>
-        public NXFile(string path, NXReadSelection flag = NXReadSelection.None) {
-            Flags = flag;
-            _start = (_pointerWrapper = new MemoryMappedFile(path)).Pointer;
-            Parse();
-        }
+        public NXFile(string path, NXReadSelection flag = NXReadSelection.None) :
+            this(new MemoryMappedFile(path), flag) { }
 
         /// <summary>
         ///     Creates and loads a NX file from a byte array.
         /// </summary>
         /// <param name="input"> The byte array containing the NX file. </param>
         /// <param name="flag"> NX parsing flags. </param>
-        public NXFile(byte[] input, NXReadSelection flag = NXReadSelection.None) {
+        public NXFile(byte[] input, NXReadSelection flag = NXReadSelection.None)
+            : this(new ByteArrayPointer(input), flag) {}
+
+        /// <summary>
+        ///     Creates and loads a NX file from a byte pointer object.
+        /// </summary>
+        /// <param name="input"> The byte pointer object containing the NX file. </param>
+        /// <param name="flag"> NX parsing flags. </param>
+        public NXFile(IBytePointerObject input, NXReadSelection flag = NXReadSelection.None)
+        {
             Flags = flag;
-            _start = (_pointerWrapper = new ByteArrayPointer(input)).Pointer;
+            _start = (_pointerWrapper = input).Pointer;
             Parse();
         }
 
