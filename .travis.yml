@@ -3,8 +3,12 @@ os: linux
 solution: reNX.sln
 sudo: false
 
+cache:
+    directories:
+        - ./reNX.Tests/bin/Release/
+
 script:
-    - xbuild /p:Configuration=Release reNX.sln
+    - xbuild /t:Rebuild /p:Configuration=Release reNX.sln
     - mono ./packages/NUnit.Runners.*/tools/nunit-console.exe ./reNX.Tests/bin/Release/reNX.Tests.dll
 
 notifications:
