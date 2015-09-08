@@ -81,9 +81,7 @@ namespace reNX {
         public NXNode BaseNode {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get {
-                if (_nodes[0] == null)
-                    Interlocked.CompareExchange(ref _nodes[0], NXNode.ParseNode(_nodeBlock, this), null);
-                return _nodes[0];
+                return GetNode(0);
             }
         }
 
@@ -152,18 +150,22 @@ namespace reNX {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal string GetString(uint id) {
-            if (_strings[id] != null)
-                return _strings[id];
+            return _strings[id] ?? LoadString(id);
+        }
+
+        private string LoadString(uint id) {
             ushort* ptr = (ushort*) (_start + _stringBlock[id]);
             Interlocked.CompareExchange(ref _strings[id], new string((sbyte*) (ptr + 1), 0, *ptr), null);
             return _strings[id];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal NXNode GetNode(long idl) {
-            uint id = (uint) idl;
-            if (_nodes[id] == null)
-                Interlocked.CompareExchange(ref _nodes[id], NXNode.ParseNode(_nodeBlock + id, this), null);
+        internal NXNode GetNode(uint id) {
+            return _nodes[id] ?? LoadNode(id);
+        }
+
+        private NXNode LoadNode(uint id) {
+            Interlocked.CompareExchange(ref _nodes[id], NXNode.ParseNode(_nodeBlock + id, this), null);
             return _nodes[id];
         }
 

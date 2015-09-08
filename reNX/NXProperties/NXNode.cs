@@ -93,7 +93,7 @@ namespace reNX.NXProperties {
             get {
                 if (_nodeData->ChildCount == 0)
                     return null;
-                InitialiseMap();
+                CheckMap();
                 return _children[name];
             }
         }
@@ -108,7 +108,7 @@ namespace reNX.NXProperties {
         public unsafe bool ContainsChild(string name) {
             if (_nodeData->ChildCount == 0)
                 return false;
-            InitialiseMap();
+            CheckMap();
             return _children.ContainsKey(name);
         }
 
@@ -123,6 +123,11 @@ namespace reNX.NXProperties {
             => this[name];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CheckMap() {
+            if (_children == null)
+                InitialiseMap();
+        }
+
         private unsafe void InitialiseMap() {
             if (_children != null)
                 return;
@@ -160,7 +165,7 @@ namespace reNX.NXProperties {
                     ret = new NXAudioNode(ptr, file);
                     break;
                 default:
-                    return Util.Die<NXNode>($"NX node has invalid type {ptr->Type}; dying");
+                    return Util.Die<NXNode>($"NX node has invalid type {ptr->Type}");
             }
 
             if (file.HasFlag(NXReadSelection.EagerParseFile))
@@ -176,10 +181,11 @@ namespace reNX.NXProperties {
 
         private class ChildEnumerator : IEnumerator<NXNode> {
             private readonly NXNode _node;
-            private int _id = -1;
+            private uint _id;
 
             public ChildEnumerator(NXNode n) {
                 _node = n;
+                Reset();
             }
 
             public void Dispose() {}
@@ -187,17 +193,18 @@ namespace reNX.NXProperties {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public unsafe bool MoveNext() {
                 ++_id;
-                return _id > -1 && _id < _node._nodeData->ChildCount;
+                return _id >= _node._nodeData->FirstChildID && _id < _node._nodeData->FirstChildID + _node._nodeData->ChildCount;
             }
 
-            public void Reset() {
-                _id = -1;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public unsafe void Reset() {
+                _id = _node._nodeData->FirstChildID - 1;
             }
 
-            public unsafe NXNode Current {
+            public NXNode Current {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 get {
-                    return _node._file.GetNode(_node._nodeData->FirstChildID + _id);
+                    return _node._file.GetNode(_id);
                 }
             }
 
