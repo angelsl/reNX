@@ -193,7 +193,8 @@ namespace reNX.NXProperties {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public unsafe bool MoveNext() {
                 ++_id;
-                return _id >= _node._nodeData->FirstChildID && _id < _node._nodeData->FirstChildID + _node._nodeData->ChildCount;
+                return _id >= _node._nodeData->FirstChildID &&
+                       _id < _node._nodeData->FirstChildID + _node._nodeData->ChildCount;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -202,10 +203,7 @@ namespace reNX.NXProperties {
             }
 
             public NXNode Current {
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get {
-                    return _node._file.GetNode(_id);
-                }
+                [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _node._file.GetNode(_id); }
             }
 
             object IEnumerator.Current {
