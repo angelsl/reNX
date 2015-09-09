@@ -59,14 +59,14 @@ namespace reNX.Tests {
                 return _testFile;
             byte[] ret;
             string hash = Encoding.ASCII.GetString(DownloadToByteArray(TestFileHash)).Trim();
-            if (File.Exists(TestFileName)
-                && CheckHash((ret = File.ReadAllBytes(TestFileName)), hash))
+            if (File.Exists(TestFilePath)
+                && CheckHash((ret = File.ReadAllBytes(TestFilePath)), hash))
                 return UnGzip(ret);
             ret = DownloadToByteArray(TestFileURL);
             if (!CheckHash(ret, hash))
                 throw new Exception("Test file hash failed");
             Directory.CreateDirectory(TestDataDir);
-            File.WriteAllBytes(TestFileName, ret);
+            File.WriteAllBytes(TestFilePath, ret);
             _testFile = UnGzip(ret);
             return _testFile;
         }
