@@ -62,9 +62,7 @@ namespace reNX {
 
         [FieldOffset(10)] internal readonly NXNodeType Type;
 
-        [FieldOffset(12)] internal readonly long Type1Data;
-
-        [FieldOffset(12)] internal readonly double Type2Data;
+        [FieldOffset(12)] internal readonly long Data;
 
         [FieldOffset(12)] internal readonly uint TypeIDData;
 

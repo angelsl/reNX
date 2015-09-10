@@ -90,22 +90,6 @@ namespace reNX.NXProperties {
         }
     }
 
-    internal sealed unsafe class NXInt64Node : NXValuedNode<long> {
-        public NXInt64Node(NodeData* ptr, NXFile file) : base(ptr, file) {}
-
-        public override long Value {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _nodeData->Type1Data; }
-        }
-    }
-
-    internal sealed unsafe class NXDoubleNode : NXValuedNode<double> {
-        public NXDoubleNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
-
-        public override double Value {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _nodeData->Type2Data; }
-        }
-    }
-
     internal sealed unsafe class NXStringNode : NXValuedNode<string> {
         public NXStringNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
