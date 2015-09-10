@@ -28,6 +28,7 @@
 // module is a module which is not derived from or based on reNX.
 
 using System.Runtime.InteropServices;
+using reNX.NXProperties;
 
 namespace reNX {
     [StructLayout(LayoutKind.Explicit, Pack = 4, Size = 52)]
@@ -59,7 +60,7 @@ namespace reNX {
 
         [FieldOffset(8)] internal readonly ushort ChildCount;
 
-        [FieldOffset(10)] internal readonly ushort Type;
+        [FieldOffset(10)] internal readonly NXNodeType Type;
 
         [FieldOffset(12)] internal readonly long Type1Data;
 

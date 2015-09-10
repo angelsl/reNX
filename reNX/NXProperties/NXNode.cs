@@ -70,6 +70,13 @@ namespace reNX.NXProperties {
         }
 
         /// <summary>
+        ///     The type of this node.
+        /// </summary>
+        public unsafe NXNodeType Type {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _nodeData->Type; }
+        }
+
+        /// <summary>
         ///     The number of children contained in this node.
         /// </summary>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
@@ -143,25 +150,25 @@ namespace reNX.NXProperties {
         internal static unsafe NXNode ParseNode(NodeData* ptr, NXFile file) {
             NXNode ret;
             switch (ptr->Type) {
-                case 0:
+                case NXNodeType.Nothing:
                     ret = new NXNode(ptr, file);
                     break;
-                case 1:
+                case NXNodeType.Int64:
                     ret = new NXInt64Node(ptr, file);
                     break;
-                case 2:
+                case NXNodeType.Double:
                     ret = new NXDoubleNode(ptr, file);
                     break;
-                case 3:
+                case NXNodeType.String:
                     ret = new NXStringNode(ptr, file);
                     break;
-                case 4:
+                case NXNodeType.Point:
                     ret = new NXPointNode(ptr, file);
                     break;
-                case 5:
+                case NXNodeType.Bitmap:
                     ret = new NXBitmapNode(ptr, file);
                     break;
-                case 6:
+                case NXNodeType.Audio:
                     ret = new NXAudioNode(ptr, file);
                     break;
                 default:
@@ -315,5 +322,15 @@ namespace reNX.NXProperties {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T ValueOrDie<T>(this NXNode n)
             => ((NXValuedNode<T>) n).Value;
+    }
+
+    public enum NXNodeType : ushort {
+        Nothing = 0,
+        Int64 = 1,
+        Double = 2,
+        String = 3,
+        Point = 4,
+        Bitmap = 5,
+        Audio = 6
     }
 }
