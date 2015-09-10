@@ -34,22 +34,23 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using NUnit.Framework;
 
 namespace reNX.Tests {
-    public class Util {
-        public const string
-            TestFileURL = "https://github.com/angelsl/ms-reNX-testfiles/raw/master/Data_NoBlobs_PKG4.nx.gz";
+    internal class TestFileLoader {
+        private const string
+            TestFileURL = "https://github.com/nxformat/testfiles/releases/download/pkg4/Data_NoBlobs_PKG4.nx.gz";
 
-        public const string
-            TestFileHash = "https://github.com/angelsl/ms-reNX-testfiles/raw/master/Data_NoBlobs_PKG4.nx.gz.sha256";
+        private const string
+            TestFileHash = "https://github.com/nxformat/testfiles/releases/download/pkg4/Data_NoBlobs_PKG4.nx.gz.sha256";
 
-        public const string
+        private const string
             TestDataDir = "data";
 
-        public const string
+        private const string
             TestFileName = "test.nx.gz";
 
-        public static readonly string
+        private static readonly string
             TestFilePath = Path.Combine(TestDataDir, TestFileName);
 
         private static byte[] _testFile;
@@ -57,42 +58,48 @@ namespace reNX.Tests {
         public static byte[] LoadTestFile() {
             if (_testFile != null)
                 return _testFile;
-            byte[] ret;
             string hash = Encoding.ASCII.GetString(DownloadToByteArray(TestFileHash)).Trim();
-            if (File.Exists(TestFilePath)
-                && CheckHash((ret = File.ReadAllBytes(TestFilePath)), hash))
-                return UnGzip(ret);
-            ret = DownloadToByteArray(TestFileURL);
-            if (!CheckHash(ret, hash))
-                throw new Exception("Test file hash failed");
-            Directory.CreateDirectory(TestDataDir);
-            File.WriteAllBytes(TestFilePath, ret);
-            _testFile = UnGzip(ret);
+            _testFile = (LoadTestFileFromDisk(hash) ?? LoadTestFileFromNet(hash));
+            if (_testFile == null)
+                Assert.Inconclusive("Failed to load test file from network");
             return _testFile;
         }
 
-        public static bool CheckHash(byte[] file, string hash) {
-            return string.Equals(hash, SHA256Sum(file), StringComparison.OrdinalIgnoreCase);
+        private static byte[] LoadTestFileFromDisk(string hash) {
+            byte[] ret;
+            if (File.Exists(TestFilePath)
+                && CheckHash((ret = File.ReadAllBytes(TestFilePath)), hash))
+                return UnGzip(ret);
+            return null;
         }
 
-        public static byte[] UnGzip(byte[] gzipped) {
+        private static byte[] LoadTestFileFromNet(string hash) {
+            byte[] ret = DownloadToByteArray(TestFileURL);
+            if (!CheckHash(ret, hash))
+                return null;
+            Directory.CreateDirectory(TestDataDir);
+            File.WriteAllBytes(TestFilePath, ret);
+            return UnGzip(ret);
+        }
+
+        private static bool CheckHash(byte[] file, string hash)
+            => string.Equals(hash, SHA256Sum(file), StringComparison.OrdinalIgnoreCase);
+
+        private static byte[] UnGzip(byte[] gzipped) {
             using (MemoryStream ms = new MemoryStream(gzipped))
             using (GZipStream gzs = new GZipStream(ms, CompressionMode.Decompress))
             using (MemoryStream os = new MemoryStream()) {
-                int len; byte[] buf = new byte[8192];
-                while ((len = gzs.Read(buf, 0, buf.Length)) > 0) {
+                int len;
+                byte[] buf = new byte[8192];
+                while ((len = gzs.Read(buf, 0, buf.Length)) > 0)
                     os.Write(buf, 0, len);
-                }
                 return os.ToArray();
             }
         }
 
-        public static byte[] DownloadToByteArray(string uri) {
-            return new WebClient().DownloadData(uri);
-        }
+        private static byte[] DownloadToByteArray(string uri) => new WebClient().DownloadData(uri);
 
-        public static string SHA256Sum(byte[] data) {
-            return string.Join("", new SHA256Managed().ComputeHash(data).Select(x => x.ToString("x2")));
-        }
+        private static string SHA256Sum(byte[] data)
+            => string.Join("", new SHA256Managed().ComputeHash(data).Select(x => x.ToString("x2")));
     }
 }

@@ -14,7 +14,7 @@ namespace reNX.Tests
         
         [SetUp]
         public void LoadFile() {
-            _nxFile = new NXFile(Util.LoadTestFile());
+            _nxFile = new NXFile(TestFileLoader.LoadTestFile());
         }
 
         [TearDown]
