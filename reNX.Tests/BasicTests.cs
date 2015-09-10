@@ -47,7 +47,7 @@ namespace reNX.Tests
         {
             Assert.That(_nxFile.ResolvePath("/String/Map.img/victoria/100000001/mapName"),
                 Is.EqualTo(_nxFile.BaseNode["String"]["Map.img"]["victoria"]["100000001"]["mapName"]));
-            Assert.That(_nxFile.ResolvePath("/String/Map.img/victoria/100000002/mapName"),
+            Assert.That(_nxFile.ResolvePath("String/Map.img/victoria/100000002/mapName"),
                 Is.EqualTo(_nxFile.BaseNode["String"]["Map.img"]["victoria"]["100000002"]["mapName"]));
         }
 
