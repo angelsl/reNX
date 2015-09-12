@@ -16,4 +16,10 @@ before_build:
 
 build:
     parallel: true
-    verbosity: normal
+    verbosity: detailed
+
+on_success:
+    - ps: irm $env:X_NOTIFICO_URL -Method GET -Body @{payload=("[{0}] AppVeyor - build {1} succeeded. ({2} @ {3})" -f $env:APPVEYOR_PROJECT_NAME, $env:APPVEYOR_BUILD_VERSION, $env:APPVEYOR_REPO_BRANCH, $env:APPVEYOR_REPO_COMMIT.Substring(0,7))}
+
+on_failure:
+    - ps: irm $env:X_NOTIFICO_URL -Method GET -Body @{payload=("[{0}] AppVeyor - build {1} failed. ({2} @ {3})" -f $env:APPVEYOR_PROJECT_NAME, $env:APPVEYOR_BUILD_VERSION, $env:APPVEYOR_REPO_BRANCH, $env:APPVEYOR_REPO_COMMIT.Substring(0,7))}
