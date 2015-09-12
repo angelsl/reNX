@@ -120,7 +120,7 @@ namespace reNX {
         /// <exception cref="System.Collections.Generic.KeyNotFoundException">The path is invalid.</exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public NXNode ResolvePath(string path) {
-            string[] elements = (path.StartsWith("/") ? path.Substring(1) : path).Split('/');
+            string[] elements = (path.StartsWith("/") ? path.Substring(1) : path).Split(new[] { '/', '\\' });
             NXNode node = BaseNode;
             foreach (string element in elements) {
                 if (element != ".")
