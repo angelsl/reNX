@@ -16,7 +16,7 @@ before_build:
 
 build:
     parallel: true
-    verbosity: detailed
+    verbosity: normal
 
 environment:
     X_NOTIFICO_URL:
