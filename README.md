@@ -1,11 +1,7 @@
-#reNX [![Build Status](https://travis-ci.org/angelsl/ms-reNX.svg?branch=master)](https://travis-ci.org/angelsl/ms-reNX) [![Build status](https://ci.appveyor.com/api/projects/status/j4xok1y5d45itkrk/branch/master?svg=true)](https://ci.appveyor.com/project/angelsl/ms-renx)
+# reNX [![Build Status](https://travis-ci.org/angelsl/ms-reNX.svg?branch=master)](https://travis-ci.org/angelsl/ms-reNX) [![Build status](https://ci.appveyor.com/api/projects/status/j4xok1y5d45itkrk/branch/master?svg=true)](https://ci.appveyor.com/project/angelsl/ms-renx)
 ...is a simple and clean .NET library for reading NX files.
 
-It, along with [NoLifeNX](https://github.com/NoLifeDev/NoLifeNx) and [WZ2NX](https://github.com/angelsl/ms-wz2nx), is the reference implementation of the NX format.
-
-reNX officially fully supports Windows and Linux only. All platforms that Mono supports are also supported, but not all features may be functional.
-
-##Usage
+## Usage
 Add a reference to reNX, and then load an NX file like so:
 
     NXFile nx = new NXFile("PKG4.nx");
@@ -17,10 +13,10 @@ Then access whatever nodes you need:
 
 If you have any questions, feel free to ask. Do consult the XMLdoc as reNX is pretty well documented.
 
-##License
+## License
 reNX is licensed under the GNU GPL v3.0 with Classpath Exception. Please read the file header carefully!
 
-    reNX is copyright angelsl, 2011 to 2013 inclusive.
+    reNX is copyright angelsl, 2011 to 2015 inclusive.
 
     reNX is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -47,7 +43,7 @@ reNX is licensed under the GNU GPL v3.0 with Classpath Exception. Please read th
     the terms and conditions of the license of that module. An independent
     module is a module which is not derived from or based on this library.
 
-##Building LZ4 for Linux
+## Building LZ4 for Linux
 As different systems may have different versions of GCC/libc and the like, it is not feasible to bundle a compiled version of LZ4 for Linux.
 
 Instead, use the included makefile (`LZ4Makefile`) to compile LZ4 on Linux. E.g.
@@ -59,7 +55,6 @@ Instead, use the included makefile (`LZ4Makefile`) to compile LZ4 on Linux. E.g.
     
 Then copy the .so file, either `liblz4_32.so` or `liblz4_64.so`, depending on your architecture, to the same directory as your application.
 
-##Acknowledgements
+## Acknowledgements
  * [retep998](https://github.com/retep998), the co-designer of the NX format
- * Cedric, [aaronweiss74](https://github.com/aaronweiss74) and others from [#MapleDev](irc://irc.fyrechat.net/MapleDev) and [#vana](irc://irc.fyrechat.net/vana) for their suggestions and help
- * [LZ4](http://code.google.com/p/lz4/), a fast and speedy compression algorithm used in NX to compress images
+ * Cedric, [aatxe](https://github.com/aatxe) and others from [#vana](irc://irc.fyrechat.net/vana) for their suggestions and help
