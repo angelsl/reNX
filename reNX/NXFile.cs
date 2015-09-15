@@ -39,13 +39,13 @@ namespace reNX {
     /// </summary>
     public sealed unsafe class NXFile : IDisposable {
         private readonly byte* _start;
-        private ulong* _bitmapBlock = (ulong*) 0;
-        private ulong* _mp3Block = (ulong*) 0;
         private NodeData* _nodeBlock;
-        private NXNode[] _nodes;
-        private IBytePointerObject _pointerWrapper;
         private ulong* _stringBlock;
+        private ulong* _byteArrayBlock = (ulong*) 0;
+
+        private IBytePointerObject _pointerWrapper;
         private string[] _strings;
+        private NXNode[] _nodes;
 
         /// <summary>
         ///     Creates and loads a NX file from a path.
@@ -82,14 +82,6 @@ namespace reNX {
         }
 
         public NXReadSelection Flags { [MethodImpl(MethodImplOptions.AggressiveInlining)] get; }
-
-        public bool HasAudio {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _mp3Block != (ulong*) 0; }
-        }
-
-        public bool HasBitmap {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _bitmapBlock != (ulong*) 0; }
-        }
 
         #region IDisposable Members
 
@@ -131,17 +123,13 @@ namespace reNX {
 
         private void Parse() {
             HeaderData hd = *((HeaderData*) _start);
-            if (hd.Magic != 0x34474B50)
+            if (hd.Magic != 0x35474B50)
                 Util.Die("NX file has invalid header; invalid magic");
             _nodeBlock = (NodeData*) (_start + hd.NodeBlock);
             _nodes = new NXNode[hd.NodeCount];
             _stringBlock = (ulong*) (_start + hd.StringBlock);
             _strings = new string[hd.StringCount];
-
-            if (hd.BitmapCount > 0)
-                _bitmapBlock = (ulong*) (_start + hd.BitmapBlock);
-            if (hd.SoundCount > 0)
-                _mp3Block = (ulong*) (_start + hd.SoundBlock);
+            _byteArrayBlock = (ulong*) (_start + hd.ByteArrayBlock);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -166,13 +154,8 @@ namespace reNX {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal byte* LocateAudio(uint id) {
-            return _start + _mp3Block[id];
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal byte* LocateBitmap(uint id) {
-            return _start + _bitmapBlock[id];
+        internal byte* LocateByteArray(uint id) {
+            return _start + _byteArrayBlock[id];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -195,29 +178,9 @@ namespace reNX {
         EagerParseStrings = 1,
 
         /// <summary>
-        ///     Set this flag to disable lazy loading of audio properties.
-        /// </summary>
-        EagerParseAudio = 2,
-
-        /// <summary>
-        ///     Set this flag to disable lazy loading of bitmap properties.
-        /// </summary>
-        EagerParseBitmap = 4,
-
-        /// <summary>
-        ///     Set this flag to completely disable loading of bitmap properties. This takes precedence over EagerParseBitmap.
-        /// </summary>
-        NeverParseBitmap = 8,
-
-        /// <summary>
         ///     Set this flag to disable lazy loading of nodes (construct all nodes immediately).
         /// </summary>
-        EagerParseFile = 32,
-
-        /// <summary>
-        ///     Set this flag to disable lazy loading of string, audio and bitmap properties.
-        /// </summary>
-        EagerParseAllProperties = EagerParseBitmap | EagerParseAudio | EagerParseStrings
+        EagerParseFile = 2,
     }
 
     internal static class Util {
@@ -231,6 +194,15 @@ namespace reNX {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void Die(string cause) {
             throw new NXException(cause);
+        }
+
+        internal unsafe static void ToArray(byte* source, byte[] dest, ulong count) {
+            fixed (byte* p = dest) {
+                byte* q = p, end = p + count;
+                while (q < end) {
+                    *(q++) = *(source++);
+                }
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

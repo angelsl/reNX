@@ -43,13 +43,9 @@ namespace reNX {
 
         [FieldOffset(20)] public readonly long StringBlock;
 
-        [FieldOffset(28)] public readonly uint BitmapCount;
+        [FieldOffset(28)] public readonly uint ByteArrayCount;
 
-        [FieldOffset(32)] public readonly long BitmapBlock;
-
-        [FieldOffset(40)] public readonly uint SoundCount;
-
-        [FieldOffset(44)] public readonly long SoundBlock;
+        [FieldOffset(32)] public readonly long ByteArrayBlock;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 20, Pack = 2)]
@@ -71,9 +67,18 @@ namespace reNX {
         [FieldOffset(12)] internal readonly int Type4DataX;
 
         [FieldOffset(16)] internal readonly int Type4DataY;
+    }
 
-        [FieldOffset(16)] internal readonly ushort Type5Width;
+    [StructLayout(LayoutKind.Explicit, Size = 34, Pack = 2)]
+    internal struct ByteArrayHeader {
+        [FieldOffset(0)] internal readonly ulong Length;
 
-        [FieldOffset(18)] internal readonly ushort Type5Height;
+        [FieldOffset(8)] internal readonly ulong DecodedLength;
+
+        [FieldOffset(16)] internal readonly ushort Encoding;
+
+        [FieldOffset(18)] internal readonly ulong Metadata1;
+
+        [FieldOffset(26)] internal readonly ulong Metadata2;
     }
 }

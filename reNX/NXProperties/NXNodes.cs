@@ -30,62 +30,48 @@
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace reNX.NXProperties {
     /// <summary>
-    ///     An optionally lazily-loaded bitmap node, containing a bitmap.
+    ///     A lazily-loaded byte array node, containing a byte array that is optionally compressed.
     /// </summary>
-    internal sealed class NXBitmapNode : NXLazyValuedNode<Bitmap> {
-        internal unsafe NXBitmapNode(NodeData* ptr, NXFile file) : base(ptr, file) {
-            if (_file.HasFlag(NXReadSelection.EagerParseBitmap))
-                _value = LoadValue();
-        }
-
-        /// <summary>
-        ///     Loads the bitmap into memory.
-        /// </summary>
-        /// <returns>
-        ///     The bitmap, as a <see cref="Bitmap" />
-        /// </returns>
-        protected override unsafe Bitmap LoadValue() {
-            if (!_file.HasBitmap || _file.HasFlag(NXReadSelection.NeverParseBitmap))
-                return null;
-            byte[] bdata = new byte[_nodeData->Type5Width*_nodeData->Type5Height*4];
-            GCHandle gcH = GCHandle.Alloc(bdata, GCHandleType.Pinned);
-            try {
-                IntPtr outBuf = gcH.AddrOfPinnedObject();
-                byte* ptr = _file.LocateBitmap(_nodeData->TypeIDData) + 4;
-                Util.DecompressLZ4(ptr, outBuf, bdata.Length);
-                using (
-                    Bitmap b = new Bitmap(_nodeData->Type5Width, _nodeData->Type5Height, 4*_nodeData->Type5Width,
-                        PixelFormat.Format32bppArgb, outBuf))
-                    return new Bitmap(b);
-            } finally {
-                gcH.Free();
-            }
-        }
-    }
-
-    /// <summary>
-    ///     An optionally lazily-loaded audio node, containing an audio file in a byte array.
-    /// </summary>
-    internal sealed class NXAudioNode : NXLazyValuedNode<byte[]> {
-        internal unsafe NXAudioNode(NodeData* ptr, NXFile file) : base(ptr, file) {
-            if (_file.HasFlag(NXReadSelection.EagerParseAudio))
-                _value = LoadValue();
-        }
+    internal sealed class NXByteArrayNode : NXLazyValuedNode<byte[]> {
+        // TODO: Expose metadata, handle WZ types
+        internal unsafe NXByteArrayNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
         /// <summary>
         ///     Loads the audio file into memory.
         /// </summary>
         /// <returns> The audio file, as a byte array. </returns>
         protected override unsafe byte[] LoadValue() {
-            if (!File.HasAudio)
-                return null;
-            byte[] ret = new byte[_nodeData->Type4DataY];
-            Marshal.Copy((IntPtr) (_file.LocateAudio(_nodeData->TypeIDData)), ret, 0, _nodeData->Type4DataY);
+            ByteArrayHeader* hdr = (ByteArrayHeader*) _file.LocateByteArray(_nodeData->TypeIDData);
+            byte* start = (byte*) (hdr + 1);
+            byte[] ret = new byte[hdr->DecodedLength];
+            switch (hdr->Encoding) {
+                case 0:
+                    Util.ToArray(start, ret, hdr->Length);
+                    break;
+                case 1:
+                    fixed (byte* p = ret) {
+                        Util.DecompressLZ4(start, (IntPtr) p, (int) hdr->DecodedLength);
+                    }
+                    break;
+                case 2:
+                    byte[] compressed = new byte[hdr->Length];
+                    Util.ToArray(start, compressed, hdr->Length);
+                    using (MemoryStream rs = new MemoryStream(compressed))
+                    using (DeflateStream ds = new DeflateStream(rs, CompressionMode.Decompress))
+                    using (MemoryStream ms = new MemoryStream(ret)) {
+                        ds.CopyTo(ms);
+                    }
+                    break;
+
+            }
+
             return ret;
         }
     }

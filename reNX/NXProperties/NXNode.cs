@@ -150,9 +150,6 @@ namespace reNX.NXProperties {
         internal static unsafe NXNode ParseNode(NodeData* ptr, NXFile file) {
             NXNode ret;
             switch (ptr->Type) {
-                case NXNodeType.Nothing:
-                    ret = new NXNode(ptr, file);
-                    break;
                 case NXNodeType.Int64:
                     ret = new NXInt64Node(ptr, file);
                     break;
@@ -165,14 +162,13 @@ namespace reNX.NXProperties {
                 case NXNodeType.Point:
                     ret = new NXPointNode(ptr, file);
                     break;
-                case NXNodeType.Bitmap:
-                    ret = new NXBitmapNode(ptr, file);
-                    break;
-                case NXNodeType.Audio:
-                    ret = new NXAudioNode(ptr, file);
+                case NXNodeType.ByteArray:
+                    ret = new NXByteArrayNode(ptr, file);
                     break;
                 default:
-                    return Util.Die<NXNode>($"NX node has invalid type {ptr->Type}");
+                case NXNodeType.Nothing:
+                    ret = new NXNode(ptr, file);
+                    break;
             }
 
             if (file.HasFlag(NXReadSelection.EagerParseFile))
@@ -330,7 +326,6 @@ namespace reNX.NXProperties {
         Double = 2,
         String = 3,
         Point = 4,
-        Bitmap = 5,
-        Audio = 6
+        ByteArray = 5
     }
 }

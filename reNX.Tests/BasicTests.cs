@@ -28,8 +28,6 @@ namespace reNX.Tests
 
         [Test]
         public void PropertyTest() {
-            Assert.That(_nxFile.HasAudio, Is.EqualTo(false));
-            Assert.That(_nxFile.HasBitmap, Is.EqualTo(false));
             Assert.That(_nxFile.BaseNode["String"].File, Is.EqualTo(_nxFile));
             Assert.That(_nxFile.BaseNode["Item"].ChildCount, Is.EqualTo(5));
         }
