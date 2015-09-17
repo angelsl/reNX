@@ -61,6 +61,8 @@ namespace reNX.NXProperties {
                     }
                     break;
                 case 2:
+                    throw new NotImplementedException(); // TODO: LZ4Frame
+                case 3:
                     byte[] compressed = new byte[hdr->Length];
                     Util.ToArray(start, compressed, hdr->Length);
                     using (MemoryStream rs = new MemoryStream(compressed))
