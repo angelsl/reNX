@@ -34,7 +34,7 @@
     <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\Utilitas\BytePointerObject.cs" />
+    <Compile Include="..\UsefulThings\BytePointerObject.cs" />
     <Compile Include="NXFile.cs" />
     <Compile Include="NXProperties\NXNode.cs" />
     <Compile Include="NXProperties\NXNodes.cs" />
