@@ -34,18 +34,12 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace reNX.NXProperties {
-    /// <summary>
-    ///     A node containing no value.
-    /// </summary>
+    /// <summary>A node containing no value.</summary>
     public class NXNode : IEnumerable<NXNode> {
-        /// <summary>
-        ///     The NX file containing this node.
-        /// </summary>
+        /// <summary>The NX file containing this node.</summary>
         protected readonly NXFile _file;
 
-        /// <summary>
-        ///     The pointer to the <see cref="NodeData" /> describing this node.
-        /// </summary>
+        /// <summary>The pointer to the <see cref="NodeData" /> describing this node.</summary>
         internal readonly unsafe NodeData* _nodeData;
 
         private Dictionary<string, NXNode> _children;
@@ -55,46 +49,32 @@ namespace reNX.NXProperties {
             _file = file;
         }
 
-        /// <summary>
-        ///     The name of this node.
-        /// </summary>
+        /// <summary>The name of this node.</summary>
         public unsafe string Name {
             [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _file.GetString(_nodeData->NodeNameID); }
         }
 
-        /// <summary>
-        ///     The file containing this node.
-        /// </summary>
+        /// <summary>The file containing this node.</summary>
         public NXFile File {
             [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _file; }
         }
 
-        /// <summary>
-        ///     The type of this node.
-        /// </summary>
+        /// <summary>The type of this node.</summary>
         public unsafe NXNodeType Type {
             [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _nodeData->Type; }
         }
 
-        /// <summary>
-        ///     The number of children contained in this node.
-        /// </summary>
+        /// <summary>The number of children contained in this node.</summary>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
         public unsafe int ChildCount {
             [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return _nodeData->ChildCount; }
         }
 
-        /// <summary>
-        ///     Gets the child contained in this node that has the specified name.
-        /// </summary>
-        /// <param name="name"> The name of the child to get. </param>
-        /// <returns> The child with the specified name. </returns>
+        /// <summary>Gets the child contained in this node that has the specified name.</summary>
+        /// <param name="name">The name of the child to get.</param>
+        /// <returns>The child with the specified name.</returns>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
-        /// <exception cref="KeyNotFoundException">
-        ///     The node does not contain a child with name
-        ///     <paramref name="name" />
-        ///     .
-        /// </exception>
+        /// <exception cref="KeyNotFoundException">The node does not contain a child with name <paramref name="name" />.</exception>
         public unsafe NXNode this[string name] {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get {
@@ -105,10 +85,8 @@ namespace reNX.NXProperties {
             }
         }
 
-        /// <summary>
-        ///     Returns true if this node contains a child with the specified name.
-        /// </summary>
-        /// <param name="name"> The name of the child to check. </param>
+        /// <summary>Returns true if this node contains a child with the specified name.</summary>
+        /// <param name="name">The name of the child to check.</param>
         /// <returns> true if this node contains a child with the specified name; false otherwise </returns>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -119,10 +97,8 @@ namespace reNX.NXProperties {
             return _children.ContainsKey(name);
         }
 
-        /// <summary>
-        ///     Gets the child contained in this node that has the specified name.
-        /// </summary>
-        /// <param name="name"> The name of the child to get. </param>
+        /// <summary>Gets the child contained in this node that has the specified name.</summary>
+        /// <param name="name">The name of the child to get.</param>
         /// <returns> The child with the specified name. </returns>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -216,23 +192,16 @@ namespace reNX.NXProperties {
 
         #region IEnumerable<NXNode> Members
 
-        /// <summary>
-        ///     Returns an enumerator that iterates through the collection.
-        /// </summary>
-        /// <returns>
-        ///     A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection.
-        /// </returns>
+        /// <summary>Returns an enumerator that iterates through the collection.</summary>
+        /// <returns>A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the
+        ///     collection.</returns>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
         /// <filterpriority>1</filterpriority>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IEnumerator<NXNode> GetEnumerator() => new ChildEnumerator(this);
 
-        /// <summary>
-        ///     Returns an enumerator that iterates through a collection.
-        /// </summary>
-        /// <returns>
-        ///     An <see cref="T:System.Collections.IEnumerator" /> object that can be used to iterate through the collection.
-        /// </returns>
+        /// <summary>Returns an enumerator that iterates through a collection.</summary>
+        /// <returns>An <see cref="T:System.Collections.IEnumerator" /> object that can be used to iterate through the collection.</returns>
         /// <exception cref="AccessViolationException">Thrown if this property is accessed after the containing file is disposed.</exception>
         /// <filterpriority>2</filterpriority>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -242,34 +211,24 @@ namespace reNX.NXProperties {
         #endregion
     }
 
-    /// <summary>
-    ///     A node containing a value of type <typeparamref name="T" />.
-    /// </summary>
+    /// <summary>A node containing a value of type <typeparamref name="T" />.</summary>
     /// <typeparam name="T"> The type of the contained value. </typeparam>
     public abstract class NXValuedNode<T> : NXNode {
         internal unsafe NXValuedNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
-        /// <summary>
-        ///     The value contained by this node.
-        /// </summary>
+        /// <summary>The value contained by this node.</summary>
         public abstract T Value { get; }
     }
 
-    /// <summary>
-    ///     A node containing a lazily-loaded value of type <typeparamref name="T" />.
-    /// </summary>
+    /// <summary>A node containing a lazily-loaded value of type <typeparamref name="T" />.</summary>
     /// <typeparam name="T"> The type of the contained lazily-loaded value. </typeparam>
     internal abstract class NXLazyValuedNode<T> : NXValuedNode<T> where T : class {
-        /// <summary>
-        ///     The value contained in this lazily-loaded node.
-        /// </summary>
+        /// <summary>The value contained in this lazily-loaded node.</summary>
         protected T _value;
 
         internal unsafe NXLazyValuedNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
-        /// <summary>
-        ///     The value contained by this node. If the value has not been loaded, the value will be loaded.
-        /// </summary>
+        /// <summary>The value contained by this node. If the value has not been loaded, the value will be loaded.</summary>
         public override T Value {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get {
@@ -279,41 +238,30 @@ namespace reNX.NXProperties {
             }
         }
 
-        /// <summary>
-        ///     Loads this value's node into memory.
-        /// </summary>
+        /// <summary>Loads this value's node into memory.</summary>
         /// <returns> </returns>
         protected abstract T LoadValue();
     }
 
-    /// <summary>
-    ///     This class contains methods to simplify casting and retrieving of values from NX nodes.
-    /// </summary>
+    /// <summary>This class contains methods to simplify casting and retrieving of values from NX nodes.</summary>
     public static class NXValueHelper {
-        /// <summary>
-        ///     Tries to cast this NXNode to a <see cref="NXValuedNode{T}" /> and returns its value, or returns the default value
-        ///     if the cast is invalid.
-        /// </summary>
+        /// <summary>Tries to cast this NXNode to a <see cref="NXValuedNode{T}" /> and returns its value, or returns the default
+        ///     value if the cast is invalid.</summary>
         /// <typeparam name="T"> The type of the value to return. </typeparam>
         /// <param name="n"> This NXNode. </param>
         /// <param name="def"> The default value to return should the cast fail. </param>
-        /// <returns>
-        ///     The contained value if the cast succeeds, or <paramref name="def" /> if the cast fails.
-        /// </returns>
+        /// <returns>The contained value if the cast succeeds, or <paramref name="def" /> if the cast fails.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T ValueOrDefault<T>(this NXNode n, T def) {
             NXValuedNode<T> nxvn = n as NXValuedNode<T>;
             return nxvn != null ? nxvn.Value : def;
         }
 
-        /// <summary>
-        ///     Tries to cast this NXNode to a <see cref="NXValuedNode{T}" /> and returns its value, or throws an
-        ///     <see cref="InvalidCastException" />
-        ///     if the cast is invalid.
-        /// </summary>
-        /// <typeparam name="T"> The type of the value to return. </typeparam>
-        /// <param name="n"> This NXNode. </param>
-        /// <returns> The contained value if the cast succeeds. </returns>
+        /// <summary>Tries to cast this NXNode to a <see cref="NXValuedNode{T}" /> and returns its value, or throws an
+        ///          <see cref="InvalidCastException" /> if the cast is invalid.</summary>
+        /// <typeparam name="T">The type of the value to return.</typeparam>
+        /// <param name="n">This NXNode.</param>
+        /// <returns>The contained value if the cast succeeds.</returns>
         /// <exception cref="InvalidCastException">Thrown if the cast is invalid.</exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T ValueOrDie<T>(this NXNode n)

@@ -35,49 +35,39 @@ using reNX.NXProperties;
 using UsefulThings;
 
 namespace reNX {
-    /// <summary>
-    ///     An NX file.
-    /// </summary>
+    /// <summary>An NX file.</summary>
     public sealed unsafe class NXFile : IDisposable {
         private readonly byte* _start;
-        private NodeData* _nodeBlock;
-        private ulong* _stringBlock;
         private ulong* _byteArrayBlock = (ulong*) 0;
-
-        private IBytePointerObject _pointerWrapper;
-        private string[] _strings;
+        private NodeData* _nodeBlock;
         private NXNode[] _nodes;
 
-        /// <summary>
-        ///     Creates and loads a NX file from a path.
-        /// </summary>
-        /// <param name="path"> The path where the NX file is located. </param>
-        /// <param name="flag"> NX parsing flags. </param>
+        private IBytePointerObject _pointerWrapper;
+        private ulong* _stringBlock;
+        private string[] _strings;
+
+        /// <summary>Creates and loads a NX file from a path.</summary>
+        /// <param name="path">The path where the NX file is located.</param>
+        /// <param name="flag">NX parsing flags.</param>
         public NXFile(string path, NXReadSelection flag = NXReadSelection.None) :
             this(new MemoryMappedFile(path), flag) {}
 
-        /// <summary>
-        ///     Creates and loads a NX file from a byte array.
-        /// </summary>
-        /// <param name="input"> The byte array containing the NX file. </param>
-        /// <param name="flag"> NX parsing flags. </param>
+        /// <summary>Creates and loads a NX file from a byte array.</summary>
+        /// <param name="input">The byte array containing the NX file.</param>
+        /// <param name="flag">NX parsing flags.</param>
         public NXFile(byte[] input, NXReadSelection flag = NXReadSelection.None)
             : this(new ByteArrayPointer(input), flag) {}
 
-        /// <summary>
-        ///     Creates and loads a NX file from a byte pointer object.
-        /// </summary>
-        /// <param name="input"> The byte pointer object containing the NX file. </param>
-        /// <param name="flag"> NX parsing flags. </param>
+        /// <summary>Creates and loads a NX file from a byte pointer object.</summary>
+        /// <param name="input">The byte pointer object containing the NX file.</param>
+        /// <param name="flag">NX parsing flags.</param>
         public NXFile(IBytePointerObject input, NXReadSelection flag = NXReadSelection.None) {
             Flags = flag;
             _start = (_pointerWrapper = input).Pointer;
             Parse();
         }
 
-        /// <summary>
-        ///     The base node of this NX file.
-        /// </summary>
+        /// <summary>The base node of this NX file.</summary>
         public NXNode BaseNode {
             [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return GetNode(0); }
         }
@@ -86,9 +76,7 @@ namespace reNX {
 
         #region IDisposable Members
 
-        /// <summary>
-        ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
+        /// <summary>Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.</summary>
         public void Dispose() {
             _pointerWrapper?.Dispose();
             _pointerWrapper = null;
@@ -99,21 +87,17 @@ namespace reNX {
 
         #endregion
 
-        /// <summary>
-        ///     Destructor.
-        /// </summary>
+        /// <summary>Destructor.</summary>
         ~NXFile() {
             Dispose();
         }
 
-        /// <summary>
-        ///     Resolves a path in the form "/a/b/c/.././d/e/f/".
-        /// </summary>
-        /// <param name="path"> The path to resolve. </param>
+        /// <summary>Resolves a path in the form "/a/b/c/.././d/e/f/".</summary>
+        /// <param name="path">The path to resolve.</param>
         /// <exception cref="System.Collections.Generic.KeyNotFoundException">The path is invalid.</exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public NXNode ResolvePath(string path) {
-            string[] elements = (path.StartsWith("/") ? path.Substring(1) : path).Split(new[] { '/', '\\' });
+            string[] elements = (path.StartsWith("/") ? path.Substring(1) : path).Split('/', '\\');
             NXNode node = BaseNode;
             foreach (string element in elements) {
                 if (element != ".")
@@ -163,25 +147,18 @@ namespace reNX {
         internal bool HasFlag(NXReadSelection f) => (Flags & f) == f;
     }
 
-    /// <summary>
-    ///     NX reading flags.
-    /// </summary>
+    /// <summary>NX reading flags.</summary>
     [Flags]
     public enum NXReadSelection : byte {
-        /// <summary>
-        ///     No flags are enabled, that is, lazy loading of string, audio and bitmap properties is enabled. This is default.
-        /// </summary>
+        /// <summary>No flags are enabled, that is, lazy loading of string, audio and bitmap properties is enabled. This is
+        ///     default.</summary>
         None = 0,
 
-        /// <summary>
-        ///     Set this flag to disable lazy loading of string properties.
-        /// </summary>
+        /// <summary>Set this flag to disable lazy loading of string properties.</summary>
         EagerParseStrings = 1,
 
-        /// <summary>
-        ///     Set this flag to disable lazy loading of nodes (construct all nodes immediately).
-        /// </summary>
-        EagerParseFile = 2,
+        /// <summary>Set this flag to disable lazy loading of nodes (construct all nodes immediately).</summary>
+        EagerParseFile = 2
     }
 
     internal static class Util {

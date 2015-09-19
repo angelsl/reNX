@@ -29,25 +29,19 @@
 
 using System;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using UsefulThings;
 
 namespace reNX.NXProperties {
-    /// <summary>
-    ///     A lazily-loaded byte array node, containing a byte array that is optionally compressed.
-    /// </summary>
+    /// <summary>A lazily-loaded byte array node, containing a byte array that is optionally compressed.</summary>
     internal sealed class NXByteArrayNode : NXLazyValuedNode<byte[]> {
         // TODO: Expose metadata, handle WZ types
         internal unsafe NXByteArrayNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
 
-        /// <summary>
-        ///     Loads the audio file into memory.
-        /// </summary>
-        /// <returns> The audio file, as a byte array. </returns>
+        /// <summary>Loads the audio file into memory.</summary>
+        /// <returns>The audio file, as a byte array.</returns>
         protected override unsafe byte[] LoadValue() {
             ByteArrayHeader* hdr = (ByteArrayHeader*) _file.LocateByteArray(_nodeData->TypeIDData);
             byte* start = (byte*) (hdr + 1);
@@ -68,11 +62,9 @@ namespace reNX.NXProperties {
                     ByteMarshal.CopyTo(start, compressed, 0, hdr->Length);
                     using (MemoryStream rs = new MemoryStream(compressed))
                     using (DeflateStream ds = new DeflateStream(rs, CompressionMode.Decompress))
-                    using (MemoryStream ms = new MemoryStream(ret)) {
+                    using (MemoryStream ms = new MemoryStream(ret))
                         ds.CopyTo(ms);
-                    }
                     break;
-
             }
 
             return ret;
