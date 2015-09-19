@@ -39,10 +39,10 @@ using NUnit.Framework;
 namespace reNX.Tests {
     internal class TestFileLoader {
         private const string
-            TestFileURL = "https://github.com/nxformat/testfiles/releases/download/pkg4/Data_NoBlobs_PKG5.nx.gz";
+            TestFileURL = "https://github.com/nxformat/testfiles/releases/download/pkg5/Data_NoBlobs_PKG5.nx.gz";
 
         private const string
-            TestFileHash = "https://github.com/nxformat/testfiles/releases/download/pkg4/Data_NoBlobs_PKG5.nx.gz.sha256";
+            TestFileHash = "https://github.com/nxformat/testfiles/releases/download/pkg5/Data_NoBlobs_PKG5.nx.gz.sha256";
 
         private const string
             TestDataDir = "data";
