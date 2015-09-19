@@ -197,15 +197,6 @@ namespace reNX {
             throw new NXException(cause);
         }
 
-        internal unsafe static void ToArray(byte* source, byte[] dest, ulong count) {
-            fixed (byte* p = dest) {
-                byte* q = p, end = p + count;
-                while (q < end) {
-                    *(q++) = *(source++);
-                }
-            }
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe int DecompressLZ4(byte* source, IntPtr dest, int outputLen)
             => _is64Bit ? EDecompressLZ464(source, dest, outputLen) : EDecompressLZ432(source, dest, outputLen);

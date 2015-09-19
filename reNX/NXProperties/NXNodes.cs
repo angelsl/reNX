@@ -34,6 +34,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using UsefulThings;
 
 namespace reNX.NXProperties {
     /// <summary>
@@ -53,7 +54,7 @@ namespace reNX.NXProperties {
             byte[] ret = new byte[hdr->DecodedLength];
             switch (hdr->Encoding) {
                 case 0:
-                    Util.ToArray(start, ret, hdr->Length);
+                    ByteMarshal.CopyTo(start, ret, 0, hdr->Length);
                     break;
                 case 1:
                     fixed (byte* p = ret) {
@@ -64,7 +65,7 @@ namespace reNX.NXProperties {
                     throw new NotImplementedException(); // TODO: LZ4Frame
                 case 3:
                     byte[] compressed = new byte[hdr->Length];
-                    Util.ToArray(start, compressed, hdr->Length);
+                    ByteMarshal.CopyTo(start, compressed, 0, hdr->Length);
                     using (MemoryStream rs = new MemoryStream(compressed))
                     using (DeflateStream ds = new DeflateStream(rs, CompressionMode.Decompress))
                     using (MemoryStream ms = new MemoryStream(ret)) {
