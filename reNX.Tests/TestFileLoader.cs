@@ -36,7 +36,7 @@ using System.Security.Cryptography;
 using System.Text;
 
 namespace reNX.Tests {
-    internal class TestFileLoader {
+    internal static class TestFileLoader {
         private const string
             TestFileURL = "https://github.com/nxformat/testfiles/releases/download/pkg5/Data_NoBlobs_PKG5.nx.gz";
 
@@ -54,14 +54,18 @@ namespace reNX.Tests {
 
         private static byte[] _testFile;
 
+        private static readonly object _syncRoot = new object();
+
         public static byte[] LoadTestFile() {
-            if (_testFile != null)
+            lock (_syncRoot) {
+                if (_testFile != null)
+                    return _testFile;
+                string hash = Encoding.ASCII.GetString(DownloadToByteArray(TestFileHash)).Trim();
+                _testFile = (LoadTestFileFromDisk(hash) ?? LoadTestFileFromNet(hash));
+                if (_testFile == null)
+                    throw new Exception("Failed to load test file from network");
                 return _testFile;
-            string hash = Encoding.ASCII.GetString(DownloadToByteArray(TestFileHash)).Trim();
-            _testFile = (LoadTestFileFromDisk(hash) ?? LoadTestFileFromNet(hash));
-            if (_testFile == null)
-                throw new Exception("Failed to load test file from network");
-            return _testFile;
+            }
         }
 
         private static byte[] LoadTestFileFromDisk(string hash) {
