@@ -34,7 +34,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
-using NUnit.Framework;
+using Xunit;
 
 namespace reNX.Tests {
     internal class TestFileLoader {
@@ -61,7 +61,7 @@ namespace reNX.Tests {
             string hash = Encoding.ASCII.GetString(DownloadToByteArray(TestFileHash)).Trim();
             _testFile = (LoadTestFileFromDisk(hash) ?? LoadTestFileFromNet(hash));
             if (_testFile == null)
-                Assert.Inconclusive("Failed to load test file from network");
+                throw new Exception("Failed to load test file from network");
             return _testFile;
         }
 

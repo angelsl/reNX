@@ -3,62 +3,54 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using NUnit.Framework;
+using Xunit;
 using reNX.NXProperties;
 
 namespace reNX.Tests
 {
-    [TestFixture]
-    public class BasicTests
-    {
-        private NXFile _nxFile;
-
-        [TestFixtureSetUp]
-        public void LoadFile()
-        {
-            _nxFile = new NXFile(TestFileLoader.LoadTestFile());
+    public class BasicTests : IClassFixture<NXFileFixture> {
+        private readonly NXFile _nxFile;
+        public BasicTests(NXFileFixture nxff) {
+            _nxFile = nxff.File;
         }
 
-        [TestFixtureTearDown]
-        public void DisposeFile()
+        public NXFile LoadFile()
         {
-            _nxFile.Dispose();
-            _nxFile = null;
+            return new NXFile(TestFileLoader.LoadTestFile());
         }
 
-        [Test]
+        [Fact]
         public void PropertyTest() {
-            Assert.That(_nxFile.BaseNode["String"].File, Is.EqualTo(_nxFile));
-            Assert.That(_nxFile.BaseNode["Item"].ChildCount, Is.EqualTo(5));
+            Assert.Equal(_nxFile.BaseNode["String"].File, _nxFile);
+            Assert.Equal(_nxFile.BaseNode["Item"].ChildCount, 5);
         }
 
-        [Test]
+        [Fact]
         public void ValuesTest() {
-            Assert.That(((NXValuedNode<string>)_nxFile.BaseNode
-                ["String"]["Map.img"]["victoria"]["100000000"]["mapName"]).Value, Is.EqualTo("Henesys"));
-            Assert.That(((NXValuedNode<long>)_nxFile.BaseNode
-                ["Mob"]["8800000.img"]["info"]["maxHP"]).Value, Is.EqualTo(60000000));
+            Assert.Equal(((NXValuedNode<string>)_nxFile.BaseNode
+                ["String"]["Map.img"]["victoria"]["100000000"]["mapName"]).Value, "Henesys");
+            Assert.Equal(((NXValuedNode<long>)_nxFile.BaseNode
+                ["Mob"]["8800000.img"]["info"]["maxHP"]).Value, 60000000);
         }
 
-        [Test]
+        [Fact]
         public void PathTest()
         {
-            Assert.That(_nxFile.ResolvePath("/String/Map.img/victoria/100000001/mapName"),
-                Is.EqualTo(_nxFile.BaseNode["String"]["Map.img"]["victoria"]["100000001"]["mapName"]));
-            Assert.That(_nxFile.ResolvePath("String/Map.img/victoria/100000002/mapName"),
-                Is.EqualTo(_nxFile.BaseNode["String"]["Map.img"]["victoria"]["100000002"]["mapName"]));
+            Assert.Equal(_nxFile.ResolvePath("/String/Map.img/victoria/100000001/mapName"),
+                _nxFile.BaseNode["String"]["Map.img"]["victoria"]["100000001"]["mapName"]);
+            Assert.Equal(_nxFile.ResolvePath("String/Map.img/victoria/100000002/mapName"),
+                _nxFile.BaseNode["String"]["Map.img"]["victoria"]["100000002"]["mapName"]);
         }
 
-        [Test]
-        [ExpectedException(typeof(InvalidCastException))]
+        [Fact]
         public void ValueOrDieDieTest() {
-            _nxFile.BaseNode["String"]["Map.img"]["victoria"]["100000000"]["mapName"].ValueOrDie<int>();
+            Assert.Throws<InvalidCastException>(() => _nxFile.BaseNode["String"]["Map.img"]["victoria"]["100000000"]["mapName"].ValueOrDie<int>());
         }
 
-        [Test]
+        [Fact]
         public void ValueOrDefaultTest()
         {
-            Assert.That(_nxFile.BaseNode["String"]["Map.img"]["victoria"]["100000000"]["mapName"].ValueOrDefault(1231), Is.EqualTo(1231));
+            Assert.Equal(_nxFile.BaseNode["String"]["Map.img"]["victoria"]["100000000"]["mapName"].ValueOrDefault(1231), 1231);
         }
     }
 }

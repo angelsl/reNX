@@ -3,24 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using NUnit.Framework;
+using Xunit;
 using reNX.NXProperties;
 
 namespace reNX.Tests
 {
-    [TestFixture]
-    public class BenchmarkTests {
-        private NXFile _nxFile;
-        
-        [SetUp]
-        public void LoadFile() {
-            _nxFile = new NXFile(TestFileLoader.LoadTestFile());
-        }
-
-        [TearDown]
-        public void DisposeFile() {
-            _nxFile.Dispose();
-            _nxFile = null;
+    public class BenchmarkTests : IClassFixture<NXFileFixture> {
+        private readonly NXFile _nxFile;
+        public BenchmarkTests(NXFileFixture nxff) {
+            _nxFile = nxff.File;
         }
 
         private void RecurseHelper(NXNode n)
@@ -28,7 +19,7 @@ namespace reNX.Tests
             foreach (NXNode m in n) RecurseHelper(m);
         }
 
-        [Test]
+        [Fact]
         public void RecurseTest() {
             RecurseHelper(_nxFile.BaseNode);
         }
