@@ -9,7 +9,8 @@ cache:
 
 script:
     - xbuild /t:Rebuild /p:Configuration=Release reNX.sln
-    - mono ./packages/xunit.runner.console.*/tools/xunit.console.exe ./reNX.Tests/bin/Release/reNX.Tests.dll
+    - cp -R ./packages/xunit.runner.console.*/tools/* ./reNX.Tests/bin/Release/
+    - mono ./reNX.Tests/bin/Release/xunit.console.exe ./reNX.Tests/bin/Release/reNX.Tests.dll
 
 notifications:
     email: false
