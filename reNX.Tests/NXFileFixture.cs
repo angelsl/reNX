@@ -31,10 +31,11 @@ using System;
 
 namespace reNX.Tests {
     public class NXFileFixture : IDisposable {
-        public NXFile File { get; }
         public NXFileFixture() {
             File = new NXFile(TestFileLoader.LoadTestFile());
         }
+
+        public NXFile File { get; }
 
         public void Dispose() {
             File.Dispose();
