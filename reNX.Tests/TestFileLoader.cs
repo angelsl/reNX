@@ -53,16 +53,23 @@ namespace reNX.Tests {
         private static readonly string
             TestFilePath = Path.Combine(TestDataDir, TestFileName);
 
-        private static byte[] _testFile;
+        private static volatile byte[] _testFile;
+
+        private static readonly object SyncRoot = new object();
 
         public static byte[] LoadTestFile() {
             if (_testFile != null)
                 return _testFile;
-            string hash = Encoding.ASCII.GetString(DownloadToByteArray(TestFileHash)).Trim();
-            _testFile = (LoadTestFileFromDisk(hash) ?? LoadTestFileFromNet(hash));
-            if (_testFile == null)
-                Assert.Inconclusive("Failed to load test file from network");
-            return _testFile;
+            lock (SyncRoot) {
+                if (_testFile != null)
+                    return _testFile;
+                string hash = Encoding.ASCII.GetString(DownloadToByteArray(TestFileHash)).Trim();
+                byte[] testFile = (LoadTestFileFromDisk(hash) ?? LoadTestFileFromNet(hash));
+                if (testFile == null)
+                    Assert.Inconclusive("Failed to load test file from network");
+                _testFile = testFile;
+                return testFile;
+            }
         }
 
         private static byte[] LoadTestFileFromDisk(string hash) {
