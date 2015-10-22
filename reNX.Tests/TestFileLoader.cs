@@ -1,6 +1,6 @@
 // reNX.Tests is copyright angelsl, 2011 to 2015 inclusive.
 // 
-// This file (TestFileLoader.cs) is part of reNX.Tests.
+// This file (Util.cs) is part of reNX.Tests.
 // 
 // reNX.Tests is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,9 +34,10 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using NUnit.Framework;
 
 namespace reNX.Tests {
-    internal static class TestFileLoader {
+    internal class TestFileLoader {
         private const string
             TestFileURL = "https://github.com/nxformat/testfiles/releases/download/pkg5/Data_NoBlobs_PKG5.nx.gz";
 
@@ -54,18 +55,14 @@ namespace reNX.Tests {
 
         private static byte[] _testFile;
 
-        private static readonly object _syncRoot = new object();
-
         public static byte[] LoadTestFile() {
-            lock (_syncRoot) {
-                if (_testFile != null)
-                    return _testFile;
-                string hash = Encoding.ASCII.GetString(DownloadToByteArray(TestFileHash)).Trim();
-                _testFile = (LoadTestFileFromDisk(hash) ?? LoadTestFileFromNet(hash));
-                if (_testFile == null)
-                    throw new Exception("Failed to load test file from network");
+            if (_testFile != null)
                 return _testFile;
-            }
+            string hash = Encoding.ASCII.GetString(DownloadToByteArray(TestFileHash)).Trim();
+            _testFile = (LoadTestFileFromDisk(hash) ?? LoadTestFileFromNet(hash));
+            if (_testFile == null)
+                Assert.Inconclusive("Failed to load test file from network");
+            return _testFile;
         }
 
         private static byte[] LoadTestFileFromDisk(string hash) {

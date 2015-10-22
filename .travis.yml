@@ -1,5 +1,4 @@
 language: csharp
-mono: alpha
 os: linux
 solution: reNX.sln
 sudo: false
@@ -10,7 +9,7 @@ cache:
 
 script:
     - xbuild /t:Rebuild /p:Configuration=Release reNX.sln
-    - mono ./packages/xunit.runner.console.*/tools/xunit.console.exe ./reNX.Tests/bin/Release/reNX.Tests.dll
+    - mono ./packages/NUnit.Runners.*/tools/nunit-console.exe ./reNX.Tests/bin/Release/reNX.Tests.dll
 
 notifications:
     email: false
