@@ -116,7 +116,7 @@ namespace reNX.Benchmark {
                     b.Dispose();
                 }
                 times.Sort();
-                return new Result(b.Identifier, times[runs*3/4], InterquartileMean(times), times[0]);
+                return new Result(b.Identifier, times[runs >> 2], InterquartileMean(times), times[0]);
             } finally {
                 f?.Dispose();
             }
