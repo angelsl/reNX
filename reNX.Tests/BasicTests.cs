@@ -38,7 +38,7 @@ namespace reNX.Tests {
 
         [TestFixtureSetUp]
         public void LoadFile() {
-            _nxFile = new NXFile(TestFileLoader.LoadTestFile());
+            _nxFile = new NXFile(TestFileLoader.TestFile);
         }
 
         [TestFixtureTearDown]

@@ -35,7 +35,7 @@ namespace reNX.Tests {
     public class BenchmarkTests {
         [SetUp]
         public void LoadFile() {
-            _nxFile = new NXFile(TestFileLoader.LoadTestFile());
+            _nxFile = new NXFile(TestFileLoader.TestFile);
         }
 
         [TearDown]
