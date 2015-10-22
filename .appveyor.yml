@@ -26,7 +26,7 @@ environment:
         secure: YlruXBXiTyNVePhysflZyXaVM25OF2JJhW2YBM4iKm4ObFspidI7tp42Um/v82lNmzHyKl2gimByfLTmiy/cAQ==
 
 on_success:
-    - ps: try { if (![String]::IsNullOrWhiteSpace($env:X_NOTIFICO_URL) -and [String]::IsNullOrWhitespace($env:APPVEYOR_PULL_REQUEST_NUMBER)) { irm $env:X_NOTIFICO_URL -Method GET -Body @{payload=("[{0}] AppVeyor - build {1} succeeded. ({2} @ {3} by {4})" -f $env:APPVEYOR_PROJECT_NAME, $env:APPVEYOR_BUILD_VERSION, $env:APPVEYOR_REPO_BRANCH, $env:APPVEYOR_REPO_COMMIT.Substring(0,7), $env:APPVEYOR_REPO_COMMIT_AUTHOR)} } } catch { $_ | fl * -Force }
+    - ps: try { if (![String]::IsNullOrWhiteSpace($env:X_NOTIFICO_URL) -and [String]::IsNullOrWhitespace($env:APPVEYOR_PULL_REQUEST_NUMBER)) { irm $env:X_NOTIFICO_URL -Method GET -Body @{payload=("[{0}] AppVeyor - build {1} succeeded. ({2} @ {3} by {4})" -f $env:APPVEYOR_REPO_NAME, $env:APPVEYOR_BUILD_VERSION, $env:APPVEYOR_REPO_BRANCH, $env:APPVEYOR_REPO_COMMIT.Substring(0,7), $env:APPVEYOR_REPO_COMMIT_AUTHOR)} } } catch { $_ | fl * -Force }
 
 on_failure:
-    - ps: try { if (![String]::IsNullOrWhiteSpace($env:X_NOTIFICO_URL) -and [String]::IsNullOrWhitespace($env:APPVEYOR_PULL_REQUEST_NUMBER)) { irm $env:X_NOTIFICO_URL -Method GET -Body @{payload=("[{0}] AppVeyor - build {1} failed. ({2} @ {3} by {4})" -f $env:APPVEYOR_PROJECT_NAME, $env:APPVEYOR_BUILD_VERSION, $env:APPVEYOR_REPO_BRANCH, $env:APPVEYOR_REPO_COMMIT.Substring(0,7), $env:APPVEYOR_REPO_COMMIT_AUTHOR)} } } catch { $_ | fl * -Force }
+    - ps: try { if (![String]::IsNullOrWhiteSpace($env:X_NOTIFICO_URL) -and [String]::IsNullOrWhitespace($env:APPVEYOR_PULL_REQUEST_NUMBER)) { irm $env:X_NOTIFICO_URL -Method GET -Body @{payload=("[{0}] AppVeyor - build {1} failed. ({2} @ {3} by {4})" -f $env:APPVEYOR_REPO_NAME, $env:APPVEYOR_BUILD_VERSION, $env:APPVEYOR_REPO_BRANCH, $env:APPVEYOR_REPO_COMMIT.Substring(0,7), $env:APPVEYOR_REPO_COMMIT_AUTHOR)} } } catch { $_ | fl * -Force }
