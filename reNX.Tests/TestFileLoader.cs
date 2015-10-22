@@ -1,6 +1,6 @@
 // reNX.Tests is copyright angelsl, 2011 to 2015 inclusive.
 // 
-// This file (Util.cs) is part of reNX.Tests.
+// This file (TestFileLoader.cs) is part of reNX.Tests.
 // 
 // reNX.Tests is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by

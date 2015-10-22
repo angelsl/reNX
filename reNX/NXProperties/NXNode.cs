@@ -258,7 +258,7 @@ namespace reNX.NXProperties {
         }
 
         /// <summary>Tries to cast this NXNode to a <see cref="NXValuedNode{T}" /> and returns its value, or throws an
-        ///          <see cref="InvalidCastException" /> if the cast is invalid.</summary>
+        ///     <see cref="InvalidCastException" /> if the cast is invalid.</summary>
         /// <typeparam name="T">The type of the value to return.</typeparam>
         /// <param name="n">This NXNode.</param>
         /// <returns>The contained value if the cast succeeds.</returns>
