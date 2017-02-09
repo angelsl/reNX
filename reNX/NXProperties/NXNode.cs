@@ -154,10 +154,10 @@ namespace reNX.NXProperties {
                     ret = new NXNode(ptr, file);
                     break;
                 case NXNodeType.Int64:
-                    ret = new NXInt64Node(ptr, file);
+                    ret = new NXBlittableValuedNode<Int64>(ptr, file);
                     break;
                 case NXNodeType.Double:
-                    ret = new NXDoubleNode(ptr, file);
+                    ret = new NXBlittableValuedNode<Double>(ptr, file);
                     break;
                 case NXNodeType.String:
                     ret = new NXStringNode(ptr, file);
@@ -257,6 +257,19 @@ namespace reNX.NXProperties {
         ///     The value contained by this node.
         /// </summary>
         public abstract T Value { get; }
+    }
+
+    internal class NXBlittableValuedNode<T> : NXValuedNode<T> where T : struct {
+        internal unsafe NXBlittableValuedNode(NodeData* ptr, NXFile file) : base(ptr, file) {}
+
+        public unsafe override T Value {
+            get {
+                T t = default(T);
+                TypedReference tr = __makeref(t);
+                *(IntPtr*) (&tr) = (IntPtr)_nodeData + 12;
+                return __refvalue(tr, T);
+            }
+        }
     }
 
     /// <summary>
